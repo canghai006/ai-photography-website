@@ -35,8 +35,11 @@ await loadEnvFile()
 
 const app = express()
 const port = Number(process.env.PORT || 8787)
-const storageDir = process.env.STORAGE_DIR
-  ? path.resolve(process.env.STORAGE_DIR)
+const railwayVolumeMountPath = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || '').trim()
+const storageDir = railwayVolumeMountPath
+  ? path.resolve(railwayVolumeMountPath)
+  : process.env.STORAGE_DIR
+    ? path.resolve(process.env.STORAGE_DIR)
   : path.join(rootDir, 'storage')
 const uploadDir = path.join(storageDir, 'uploads')
 const analysesPath = path.join(storageDir, 'analyses.json')
@@ -52,6 +55,16 @@ const galleryCategories = new Set(['风光', '人像', '其他'])
 
 await fs.mkdir(storageDir, { recursive: true })
 await fs.mkdir(uploadDir, { recursive: true })
+
+console.log(JSON.stringify({
+  event: 'storage_configured',
+  storageDir,
+  persistent: Boolean(railwayVolumeMountPath),
+  source: railwayVolumeMountPath ? 'railway-volume' : process.env.STORAGE_DIR ? 'storage-dir' : 'local-default',
+}))
+if (process.env.RAILWAY_ENVIRONMENT && !railwayVolumeMountPath) {
+  console.warn(JSON.stringify({ event: 'persistent_storage_missing', message: 'No Railway Volume is attached; data will be lost on redeploy.' }))
+}
 
 async function cleanupStaleGuestUploads() {
   const entries = await fs.readdir(uploadDir, { withFileTypes: true }).catch(() => [])
@@ -187,7 +200,12 @@ function handleMulterError(err, _req, res, next) {
 }
 
 app.get('/api/health', (_req, res) => {
-  return res.json({ ok: true, database: 'sqlite' })
+  return res.json({
+    ok: true,
+    database: 'sqlite',
+    persistentStorage: Boolean(railwayVolumeMountPath),
+    storageSource: railwayVolumeMountPath ? 'railway-volume' : process.env.STORAGE_DIR ? 'storage-dir' : 'local-default',
+  })
 })
 
 app.post('/api/auth/register', (req, res) => {

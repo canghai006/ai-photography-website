@@ -14,7 +14,6 @@
 ARK_API_KEY=你的火山引擎 Ark API Key
 ARK_MODEL=你的 Ark 模型 Endpoint ID
 ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-STORAGE_DIR=/data
 ADMIN_EMAIL=你的管理员注册邮箱
 ```
 
@@ -28,7 +27,7 @@ ADMIN_EMAIL=你的管理员注册邮箱
 /data
 ```
 
-项目会把数据保存到：
+项目会自动读取 Railway 提供的 `RAILWAY_VOLUME_MOUNT_PATH`，无需手动设置 `STORAGE_DIR`。数据会保存到挂载目录，例如：
 
 ```text
 /data/app.db
