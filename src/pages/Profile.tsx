@@ -59,7 +59,7 @@ export function Profile() {
 
         <section className="mt-14 grid gap-5 sm:grid-cols-3">
           {stats.map(({ label, value, icon: Icon }) => (
-            <BorderGlow key={label} borderRadius={12} backgroundColor="#08090b" glowColor="40 90 78">
+            <BorderGlow className="profile-stat-card" key={label} borderRadius={12} backgroundColor="#08090b" glowColor="42 92 76">
               <div className="p-6"><Icon className="text-amber-100" size={22} /><p className="mt-5 text-sm text-zinc-500">{label}</p><p className="mt-2 text-3xl text-white">{value}</p></div>
             </BorderGlow>
           ))}

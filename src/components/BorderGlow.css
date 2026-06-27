@@ -194,6 +194,45 @@
   animation: analyzeBorderOrbit 3s linear infinite;
 }
 
+.border-glow-card.profile-stat-card {
+  transform-origin: center;
+  background:
+    linear-gradient(transparent, transparent) padding-box,
+    linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)) border-box;
+  transition:
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 420ms ease;
+}
+
+.profile-stat-card::before,
+.profile-stat-card::after {
+  display: none;
+}
+
+.profile-stat-card .border-glow-inner {
+  background: rgba(8, 9, 11, 0.6);
+}
+
+.profile-stat-card:hover {
+  z-index: 4;
+  transform: translateY(-5px) scale(1.035);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3), 0 0 24px rgba(243, 211, 126, 0.12);
+}
+
+.profile-stat-card:hover .edge-light {
+  opacity: 1;
+  background: conic-gradient(
+    from var(--analyze-orbit-angle),
+    transparent 0deg,
+    transparent 286deg,
+    var(--glow-color-20) 308deg,
+    var(--glow-color) 334deg,
+    transparent 360deg
+  );
+  filter: drop-shadow(0 0 10px var(--glow-color-60)) drop-shadow(0 0 3px var(--glow-color));
+  animation: analyzeBorderOrbit 3s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .analyze-frame,
   .analyze-frame:hover {
@@ -206,6 +245,16 @@
   }
 
   .auth-orbit-frame .edge-light {
+    animation: none;
+  }
+
+  .profile-stat-card,
+  .profile-stat-card:hover {
+    transform: none;
+    transition-duration: 0.01ms;
+  }
+
+  .profile-stat-card:hover .edge-light {
     animation: none;
   }
 }
@@ -221,6 +270,15 @@
   }
 
   .analyze-frame:hover .edge-light {
+    animation: none;
+  }
+
+  .profile-stat-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .profile-stat-card:hover .edge-light {
     animation: none;
   }
 }

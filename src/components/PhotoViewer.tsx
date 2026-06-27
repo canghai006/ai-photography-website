@@ -18,12 +18,12 @@ type Point = { x: number; y: number }
 const MIN_SCALE = 1
 const MAX_SCALE = 5
 
-export function PhotoViewer({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void }) {
+export function PhotoViewer({ photo, onClose, initialCommentsOpen = false }: { photo: GalleryPhoto; onClose: () => void; initialCommentsOpen?: boolean }) {
   const { user } = useAuth()
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
-  const [commentsOpen, setCommentsOpen] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(initialCommentsOpen)
   const [comments, setComments] = useState<Comment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentText, setCommentText] = useState('')
