@@ -1,0 +1,96 @@
+.border-glow-card {
+  --edge-proximity: 0;
+  --cursor-angle: 0deg;
+  position: relative;
+  border-radius: var(--border-radius);
+  padding: 1px;
+  isolation: isolate;
+  background:
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    conic-gradient(
+      from var(--cursor-angle),
+      transparent 0deg,
+      var(--glow-color-10) calc(var(--cone-spread) * 0.45deg),
+      var(--glow-color-60) calc(var(--cone-spread) * 1deg),
+      var(--glow-color) calc(var(--cone-spread) * 1.35deg),
+      var(--glow-color-60) calc(var(--cone-spread) * 1.85deg),
+      transparent calc(var(--cone-spread) * 2.35deg)
+    ) border-box;
+}
+
+.border-glow-card::before,
+.border-glow-card::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--glow-padding) * -1);
+  z-index: -1;
+  border-radius: calc(var(--border-radius) + var(--glow-padding));
+  opacity: calc((var(--edge-proximity) / 100) * var(--fill-opacity));
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.border-glow-card::before {
+  background:
+    var(--gradient-one),
+    var(--gradient-two),
+    var(--gradient-three),
+    var(--gradient-four),
+    var(--gradient-five),
+    var(--gradient-six),
+    var(--gradient-seven),
+    var(--gradient-base);
+  filter: blur(calc(var(--glow-padding) * 0.7));
+}
+
+.border-glow-card::after {
+  background:
+    conic-gradient(
+      from var(--cursor-angle),
+      transparent 0deg,
+      var(--glow-color-20) calc(var(--cone-spread) * 0.55deg),
+      var(--glow-color) calc(var(--cone-spread) * 1.2deg),
+      transparent calc(var(--cone-spread) * 2.2deg)
+    );
+  filter: blur(calc(var(--glow-padding) * 0.36));
+}
+
+.border-glow-card.sweep-active::before,
+.border-glow-card.sweep-active::after {
+  transition: none;
+}
+
+.edge-light {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: calc(var(--edge-proximity) / 100);
+  background:
+    conic-gradient(
+      from var(--cursor-angle),
+      transparent 0deg,
+      var(--glow-color-30) calc(var(--cone-spread) * 0.55deg),
+      var(--glow-color) calc(var(--cone-spread) * 1.08deg),
+      transparent calc(var(--cone-spread) * 1.8deg)
+    );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  padding: 1px;
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+}
+
+.border-glow-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  border-radius: calc(var(--border-radius) - 1px);
+  background: color-mix(in srgb, var(--card-bg) 82%, transparent);
+  overflow: hidden;
+}

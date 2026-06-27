@@ -1,0 +1,272 @@
+import { motion, useScroll, useTransform, type Variants } from 'framer-motion'
+import { Camera, Crop, Download, Eye, Lightbulb, Palette, Star } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import { DriftReveal, ImageReveal, SectionIntro, cardReveal, smoothEase, staggerContainer } from '../components/Animated'
+import { PhotoCard } from '../components/PhotoCard'
+import { ScoreBar } from '../components/ScoreBar'
+import { demoImage, features, photos, reportBlocks, scores } from '../data/mock'
+
+const icons = [Crop, Lightbulb, Palette, Eye, Download, Star]
+const marqueePhotos = [...photos, ...photos]
+
+const heroContainer: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      delayChildren: 2.05,
+      staggerChildren: 0.16,
+    },
+  },
+}
+
+const heroLine: Variants = {
+  hidden: { opacity: 0, y: 92 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 1.35, ease: smoothEase },
+  },
+}
+
+const heroDetail: Variants = {
+  hidden: { opacity: 0, y: 72 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 1.25, ease: smoothEase },
+  },
+}
+
+export function Home() {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
+  const demoRef = useRef<HTMLElement>(null)
+  const showPreview = false
+  const { scrollYProgress: heroScroll } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
+  const heroTextOpacity = useTransform(heroScroll, [0, 0.46, 0.88], [1, 0.82, 0])
+  const heroTextY = useTransform(heroScroll, [0, 1], [0, -72])
+
+  useEffect(() => {
+    videoRef.current?.play().catch(() => undefined)
+  }, [])
+
+  return (
+    <>
+      <section ref={heroRef} className="relative min-h-screen overflow-hidden bg-black">
+        <motion.video
+          ref={videoRef}
+          autoPlay
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+          initial={{ scale: 1.08, filter: 'brightness(1) saturate(0.95)' }}
+          animate={{ scale: 1.02, filter: 'brightness(1) saturate(1)' }}
+          transition={{ duration: 4, ease: smoothEase }}
+          loop
+          muted
+          onCanPlay={() => videoRef.current?.play().catch(() => undefined)}
+          playsInline
+          preload="auto"
+        >
+          <source src="/media/hero-video.mp4?v=4" type="video/mp4" />
+        </motion.video>
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/80 via-black/22 to-black/28" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/84 via-transparent to-black/22" />
+
+        <motion.div
+          className="relative z-20 mx-auto min-h-screen max-w-[1700px] px-6 pt-24 lg:px-10"
+          style={{ opacity: heroTextOpacity, y: heroTextY }}
+        >
+          <motion.div
+            className="grid min-h-screen grid-rows-[1fr_auto_1fr] pb-14 pt-20 md:pb-20 lg:pt-24"
+            initial="hidden"
+            animate="show"
+            variants={heroContainer}
+          >
+            <div className="hidden">
+              <div>
+                <motion.p className="mb-6 text-sm tracking-[0.35em] text-amber-100/80" variants={heroLine}>
+                  专业摄影作品智能点评
+                </motion.p>
+              </div>
+              <h1 className="max-w-5xl text-6xl font-medium leading-none text-white md:text-8xl">
+                <span className="block">
+                  <motion.span className="block" variants={heroLine}>
+                    AI 摄影分析
+                  </motion.span>
+                </span>
+              </h1>
+              <motion.p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300" variants={heroDetail}>
+                上传你的摄影作品，AI 将从构图、光影、色彩和情绪表达，为你生成专业摄影点评报告。
+              </motion.p>
+              <motion.div className="mt-10 flex flex-wrap gap-4" variants={heroDetail}>
+                <Link className="rounded-full bg-amber-200 px-7 py-4 font-medium text-black transition duration-300 hover:-translate-y-1 hover:bg-violet-300 hover:text-black hover:shadow-[0_0_42px_rgba(196,181,253,0.45)]" to="/analyze">
+                  上传作品开始分析
+                </Link>
+                <Link className="rounded-full border border-white/20 bg-white/0 px-7 py-4 text-white backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-amber-200 hover:bg-amber-200 hover:text-black hover:shadow-[0_0_36px_rgba(253,230,138,0.28)]" to="/result">
+                  查看示例报告
+                </Link>
+              </motion.div>
+            </div>
+
+            <motion.aside className="self-end border-l border-amber-100/80 pl-5 md:max-w-sm md:pl-7" variants={heroDetail}>
+              <p className="font-serif text-xl font-semibold uppercase tracking-[0.18em] text-amber-100 md:text-3xl">
+                Special Report:
+              </p>
+              <p className="mt-3 font-serif text-3xl font-semibold uppercase leading-tight text-white md:text-5xl">
+                AI Image
+                <span className="block">Critique</span>
+              </p>
+              <p className="mt-9 max-w-xs text-sm leading-7 text-zinc-300 md:text-base">
+                Upload one photograph. Let composition, light, color, and emotion return as a sharper creative direction.
+              </p>
+              <Link
+                className="mt-9 inline-flex rounded-full bg-amber-200 px-7 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-black transition duration-300 hover:-translate-y-1 hover:bg-white"
+                to="/analyze"
+              >
+                Start Analysis
+              </Link>
+            </motion.aside>
+
+            <motion.h1
+              className="mx-auto max-w-6xl self-center text-center font-serif text-6xl font-semibold uppercase leading-[0.84] text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.34)] md:text-8xl lg:text-[9.5rem]"
+              initial={{ opacity: 0, scale: 0.82, filter: 'blur(18px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              transition={{ duration: 1.35, delay: 1.5, ease: smoothEase }}
+            >
+              The
+              <span className="block">Photography</span>
+            </motion.h1>
+
+            <motion.div className="self-end text-left md:justify-self-end md:text-right" variants={heroLine}>
+              <p className="text-sm font-semibold uppercase tracking-[0.26em] text-amber-100">
+                Upcoming Mode:
+              </p>
+              <p className="mt-3 max-w-md text-2xl font-medium leading-snug text-white md:text-3xl">
+                Professional photo analysis, report archive, and gallery review.
+              </p>
+            </motion.div>
+
+            {showPreview && (
+              <motion.div
+                className="ml-auto w-full max-w-md border border-white/15 bg-black/35 p-7 shadow-2xl shadow-black/40 backdrop-blur-2xl"
+                initial={{ opacity: 0, x: 80, scaleX: 0.86, filter: 'blur(18px)' }}
+                animate={{ opacity: 1, x: 0, scaleX: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 1.1, ease: smoothEase }}
+              >
+                <div className="mb-7 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-400">综合评分</p>
+                    <p className="mt-2 text-5xl font-medium text-white">
+                      86 <span className="text-lg text-zinc-400">/ 100</span>
+                    </p>
+                  </div>
+                  <Camera className="text-amber-100" size={34} />
+                </div>
+                <div className="space-y-5">
+                  {Object.entries(scores).slice(0, 4).map(([label, value]) => (
+                    <ScoreBar key={label} label={label} value={value} />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        </motion.div>
+      </section>
+
+      <section id="features" className="relative overflow-hidden bg-black px-6 py-32 lg:px-10">
+        <div className="aurora-section-glow" aria-hidden="true" />
+        <div className="mx-auto max-w-[1700px]">
+          <SectionIntro kicker="INTELLIGENT CRITIQUE" title="AI 能为你的摄影作品做什么？" />
+          <motion.div
+            className="mt-24 grid gap-5 md:grid-cols-2 xl:grid-cols-3 lg:mt-28"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '0px 0px 180px 0px', amount: 0.12 }}
+            variants={staggerContainer}
+          >
+            {features.map(([number, title, text], index) => {
+              const Icon = icons[index]
+              return (
+                <motion.article
+                  className="group min-h-64 origin-bottom border border-white/10 bg-zinc-950/80 p-7 transition duration-500 hover:-translate-y-2 hover:border-amber-200/30 hover:shadow-[0_0_42px_rgba(139,92,246,0.16)]"
+                  key={title}
+                  variants={cardReveal}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="text-sm tracking-[0.3em] text-zinc-500">{number}</span>
+                    <Icon className="text-amber-100" size={28} />
+                  </div>
+                  <h3 className="mt-16 text-3xl font-medium text-white">{title}</h3>
+                  <p className="mt-5 leading-7 text-zinc-400">{text}</p>
+                </motion.article>
+              )
+            })}
+          </motion.div>
+        </div>
+      </section>
+
+      <section ref={demoRef} className="bg-[#070707] px-6 py-32 lg:px-10">
+        <div className="mx-auto grid max-w-[1700px] items-center gap-14 lg:grid-cols-[0.95fr_1.05fr]">
+          <ImageReveal className="min-h-[620px]" src={demoImage} alt="示例摄影作品" targetRef={demoRef} />
+          <div>
+            <SectionIntro kicker="SAMPLE REPORT" title="一份可继续创作的专业反馈" />
+            <motion.div className="mt-10 border border-white/10 bg-black/55 p-8 backdrop-blur-xl" initial="hidden" whileInView="show" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}>
+              <motion.div className="grid gap-4 sm:grid-cols-2" variants={cardReveal}>
+                {Object.entries(scores).map(([label, value]) => (
+                  <ScoreBar key={label} label={label} value={value} />
+                ))}
+              </motion.div>
+              <div className="mt-10 grid gap-5 md:grid-cols-2">
+                {reportBlocks.slice(0, 5).map((block) => (
+                  <motion.div key={block.title} className="border-t border-white/10 pt-5" variants={cardReveal}>
+                    <h3 className="text-lg text-amber-100">{block.title}</h3>
+                    <p className="mt-3 text-sm leading-7 text-zinc-400">{block.text}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden bg-black py-32">
+        <div className="mx-auto max-w-[1700px] px-6 lg:px-10">
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+            <SectionIntro kicker="PUBLIC GALLERY" title="公开摄影作品集预览" />
+            <DriftReveal delay={0.18}>
+              <Link className="text-amber-100 transition hover:text-white" to="/gallery">
+                查看全部作品
+              </Link>
+            </DriftReveal>
+          </div>
+        </div>
+        <motion.div className="relative mt-16" initial={{ opacity: 0, y: 80, scale: 0.97 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: '-100px' }} transition={{ duration: 1.2, ease: smoothEase }}>
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-black to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-black to-transparent" />
+          <div className="flex w-max animate-galleryMarquee gap-5 pr-5">
+            {marqueePhotos.map((photo, index) => (
+              <div className="w-[320px] shrink-0 md:w-[390px]" key={`${photo.id}-${index}`}>
+                <PhotoCard photo={photo} />
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="relative overflow-hidden bg-[linear-gradient(120deg,#030303,#15110a_48%,#110b1f)] px-6 py-36 lg:px-10">
+        <div className="aurora-section-glow aurora-section-glow-right" aria-hidden="true" />
+        <div className="mx-auto max-w-[1200px] text-center">
+          <SectionIntro align="center" kicker="START ANALYSIS" title="让每一张照片，都知道自己还能怎么变得更好。" />
+          <DriftReveal delay={0.18} className="mt-10">
+            <Link className="inline-flex rounded-full bg-white px-8 py-4 font-medium text-black transition duration-300 hover:-translate-y-1 hover:bg-violet-300" to="/analyze">
+              上传作品开始分析
+            </Link>
+          </DriftReveal>
+        </div>
+      </section>
+    </>
+  )
+}

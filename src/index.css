@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+@theme {
+  --animate-heroScale: heroScale 18s ease-in-out infinite alternate;
+  --animate-galleryMarquee: galleryMarquee 42s linear infinite;
+
+  @keyframes heroScale {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes galleryMarquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-50% - 10px));
+    }
+  }
+
+  @keyframes auroraDrift {
+    0% {
+      transform: translate3d(-8%, -6%, 0) scale(1);
+      opacity: 0.7;
+    }
+    45% {
+      transform: translate3d(9%, 4%, 0) scale(1.08);
+      opacity: 0.95;
+    }
+    100% {
+      transform: translate3d(-3%, 9%, 0) scale(1.03);
+      opacity: 0.78;
+    }
+  }
+
+  @keyframes auroraBreath {
+    0% {
+      transform: translate3d(8%, -8%, 0) scale(1.05);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translate3d(-6%, 7%, 0) scale(1.16);
+      opacity: 0.86;
+    }
+    100% {
+      transform: translate3d(4%, 2%, 0) scale(1.08);
+      opacity: 0.64;
+    }
+  }
+}
+
+:root {
+  color: #f7f7f7;
+  background: #000;
+  font-family:
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei",
+    "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #000;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    #000;
+  background-size: 96px 96px;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  display: block;
+}
+
+::selection {
+  color: #000;
+  background: #fde68a;
+}
+
+.aurora-field {
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(8, 8, 12, 0.02), rgba(5, 5, 9, 0.58));
+  mix-blend-mode: screen;
+  opacity: 0.82;
+}
+
+.aurora-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.32) 62%, rgba(0, 0, 0, 0.86) 100%),
+    radial-gradient(circle at 50% 60%, transparent 0%, rgba(0, 0, 0, 0.48) 68%);
+  mix-blend-mode: multiply;
+}
+
+.aurora-wash {
+  position: absolute;
+  display: block;
+  filter: blur(68px);
+  will-change: transform, opacity;
+}
+
+.aurora-wash-green {
+  top: -22%;
+  left: -14%;
+  width: 58%;
+  height: 68%;
+  background:
+    radial-gradient(ellipse at 34% 30%, rgba(135, 255, 131, 0.78), transparent 58%),
+    radial-gradient(ellipse at 62% 70%, rgba(81, 160, 102, 0.42), transparent 62%);
+  animation: auroraDrift 13s ease-in-out infinite alternate;
+}
+
+.aurora-wash-violet {
+  top: -28%;
+  right: -12%;
+  width: 68%;
+  height: 74%;
+  background:
+    radial-gradient(ellipse at 45% 40%, rgba(191, 143, 255, 0.7), transparent 56%),
+    radial-gradient(ellipse at 76% 26%, rgba(88, 36, 255, 0.72), transparent 58%);
+  animation: auroraBreath 16s ease-in-out infinite alternate;
+}
+
+.aurora-wash-ink {
+  top: 18%;
+  left: 16%;
+  width: 68%;
+  height: 74%;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(12, 13, 18, 0.92), transparent 52%),
+    radial-gradient(ellipse at 70% 58%, rgba(0, 0, 0, 0.82), transparent 64%);
+  filter: blur(58px);
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+}
+
+.aurora-section-glow {
+  pointer-events: none;
+  position: absolute;
+  top: -18%;
+  left: -10%;
+  width: 72%;
+  height: 56%;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(132, 255, 142, 0.22), transparent 56%),
+    radial-gradient(ellipse at 62% 24%, rgba(165, 124, 255, 0.24), transparent 60%);
+  filter: blur(74px);
+  opacity: 0.55;
+  animation: auroraDrift 18s ease-in-out infinite alternate;
+}
+
+.aurora-section-glow-right {
+  right: -20%;
+  left: auto;
+  top: -10%;
+  opacity: 0.72;
+}

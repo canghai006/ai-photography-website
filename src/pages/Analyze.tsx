@@ -1,0 +1,132 @@
+import { AnimatePresence, motion } from 'framer-motion'
+import { ImagePlus, Loader2, Upload } from 'lucide-react'
+import { type ChangeEvent, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Aurora } from '../components/Aurora'
+import { BorderGlow } from '../components/BorderGlow'
+import type { AnalysisRecord } from '../types/analysis'
+
+const loadingSteps = ['正在分析构图...', '正在读取光影...', '正在理解色彩情绪...', '正在生成改进建议...']
+
+export function Analyze() {
+  const navigate = useNavigate()
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(0)
+  const [error, setError] = useState('')
+
+  const currentText = useMemo(() => loadingSteps[Math.min(step, loadingSteps.length - 1)], [step])
+
+  function handleFile(event: ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0]
+    if (!nextFile) return
+    setFile(nextFile)
+    setPreview(URL.createObjectURL(nextFile))
+    setError('')
+  }
+
+  async function startAnalysis() {
+    if (!file) return
+    setLoading(true)
+    setError('')
+    loadingSteps.forEach((_, index) => window.setTimeout(() => setStep(index), index * 900))
+
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || '上传失败，请稍后再试')
+      }
+
+      const analysis = (await response.json()) as AnalysisRecord
+      localStorage.setItem('latest-analysis-id', analysis.id)
+      navigate(`/result?id=${analysis.id}`)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : '上传失败，请稍后再试')
+      setLoading(false)
+      setStep(0)
+    }
+  }
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-black px-6 pb-24 pt-36 lg:px-10">
+      <div className="absolute inset-0 opacity-70" aria-hidden="true">
+        <Aurora amplitude={1.15} blend={0.5} colorStops={['#5227FF', '#7cff67', '#38bdf8']} speed={0.45} />
+      </div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#19191999,#050505_62%)]" aria-hidden="true" />
+
+      <div className="relative z-10 mx-auto max-w-[1700px]">
+        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}>
+          <p className="text-sm tracking-[0.35em] text-amber-100/80">上传分析</p>
+          <h1 className="mt-5 text-6xl font-medium text-white md:text-7xl">上传你的摄影作品</h1>
+        </motion.div>
+
+        <div className="mt-16 grid gap-8 lg:grid-cols-[1fr_0.7fr]">
+          <BorderGlow animated borderRadius={8} className="min-h-[560px]" glowColor="264 90 78" backgroundColor="#07070a" glowIntensity={0.72}>
+            <label className="group flex min-h-[560px] cursor-pointer flex-col items-center justify-center bg-black/45 p-8 text-center backdrop-blur-xl">
+              {preview ? (
+                <img className="max-h-[520px] w-full object-contain" src={preview} alt="上传图片预览" />
+              ) : (
+                <>
+                  <ImagePlus className="text-amber-100 transition group-hover:-translate-y-1" size={48} />
+                  <h2 className="mt-8 text-3xl text-white">拖拽照片到这里</h2>
+                  <p className="mt-4 text-zinc-400">支持 JPG / PNG / WEBP</p>
+                  <span className="mt-8 inline-flex rounded-full border border-white/15 px-6 py-3 text-zinc-200">选择图片</span>
+                </>
+              )}
+              <input accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} type="file" />
+            </label>
+          </BorderGlow>
+
+          <BorderGlow animated borderRadius={8} glowColor="40 90 78" backgroundColor="#09090c" glowIntensity={0.82}>
+            <aside className="h-full p-8">
+              <Upload className="text-violet-200" size={32} />
+              <h2 className="mt-8 text-3xl font-medium text-white">分析前预览</h2>
+              <p className="mt-4 leading-7 text-zinc-400">上传后会模拟生成专业摄影点评报告，包含评分、风格标签和改进建议。</p>
+              <button
+                className="mt-10 w-full rounded-full bg-amber-200 px-7 py-4 font-medium text-black transition hover:-translate-y-1 hover:bg-violet-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                disabled={!file || loading}
+                onClick={startAnalysis}
+              >
+                {loading ? '分析中...' : '开始分析'}
+              </button>
+
+              {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
+
+              <AnimatePresence>
+                {loading && (
+                  <motion.div
+                    className="mt-10 border border-white/10 bg-black/60 p-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                  >
+                    <div className="flex items-center gap-3 text-amber-100">
+                      <Loader2 className="animate-spin" size={20} />
+                      <span>{currentText}</span>
+                    </div>
+                    <div className="mt-5 h-1 overflow-hidden rounded-full bg-white/10">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-200 to-violet-300"
+                        animate={{ width: `${((step + 1) / loadingSteps.length) * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </aside>
+          </BorderGlow>
+        </div>
+      </div>
+    </main>
+  )
+}
