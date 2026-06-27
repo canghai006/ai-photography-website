@@ -1,14 +1,13 @@
 import { motion, useScroll, useTransform, type Variants } from 'framer-motion'
 import { Camera, Crop, Download, Eye, Lightbulb, Palette, Star } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DriftReveal, ImageReveal, SectionIntro, cardReveal, smoothEase, staggerContainer } from '../components/Animated'
-import { PhotoCard } from '../components/PhotoCard'
+import { PhotoCard, type GalleryPhoto } from '../components/PhotoCard'
 import { ScoreBar } from '../components/ScoreBar'
-import { demoImage, features, photos, reportBlocks, scores } from '../data/mock'
+import { demoImage, features, reportBlocks, scores } from '../data/mock'
 
 const icons = [Crop, Lightbulb, Palette, Eye, Download, Star]
-const marqueePhotos = [...photos, ...photos]
 
 const heroLine: Variants = {
   hidden: { opacity: 0, y: 92 },
@@ -32,6 +31,7 @@ export function Home() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const heroRef = useRef<HTMLElement>(null)
   const demoRef = useRef<HTMLElement>(null)
+  const [uploadedPhotos, setUploadedPhotos] = useState<GalleryPhoto[]>([])
   const showPreview = false
   const { scrollYProgress: heroScroll } = useScroll({
     target: heroRef,
@@ -42,7 +42,19 @@ export function Home() {
 
   useEffect(() => {
     videoRef.current?.play().catch(() => undefined)
+    fetch('/api/gallery')
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => setUploadedPhotos(Array.isArray(data) ? data : []))
+      .catch(() => setUploadedPhotos([]))
   }, [])
+
+  const marqueePhotos = useMemo(() => {
+    if (uploadedPhotos.length === 0) return []
+    const minimumSetSize = 6
+    const repeatCount = Math.max(1, Math.ceil(minimumSetSize / uploadedPhotos.length))
+    const sequence = Array.from({ length: repeatCount }, () => uploadedPhotos).flat()
+    return [...sequence, ...sequence]
+  }, [uploadedPhotos])
 
   return (
     <>
@@ -273,7 +285,7 @@ export function Home() {
 
       <section ref={demoRef} className="home-demo cloudscape-page-bg px-6 py-32 lg:px-10">
         <div className="mx-auto grid max-w-[1700px] items-center gap-14 lg:grid-cols-[0.95fr_1.05fr]">
-          <ImageReveal className="demo-image min-h-[620px]" src={demoImage} alt="示例摄影作品" targetRef={demoRef} />
+          <ImageReveal className="demo-image min-h-[620px] bg-black/30" src={demoImage} alt="园林倒影与舞者摄影作品" targetRef={demoRef} />
           <div>
             <SectionIntro kicker="SAMPLE REPORT" title="一份可继续创作的专业反馈" />
             <motion.div className="demo-report mt-10 border border-white/10 bg-black/55 p-8 backdrop-blur-xl" initial="hidden" whileInView="show" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}>
@@ -316,18 +328,7 @@ export function Home() {
                   canLike={false}
                   onLike={() => undefined}
                   showLike={false}
-                  photo={{
-                    id: String(photo.id),
-                    title: photo.title,
-                    description: '',
-                    category: photo.category,
-                    imageUrl: photo.image,
-                    likeCount: 0,
-                    liked: false,
-                    score: photo.score,
-                    analysisId: null,
-                    user: { username: 'yingxi', displayName: '影析精选' },
-                  }}
+                  photo={photo}
                 />
               </div>
             ))}

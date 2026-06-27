@@ -121,7 +121,7 @@ export function ImageReveal({
       viewport={{ once: true, margin: '-100px' }}
       transition={{ duration: 1.35, ease: smoothEase }}
     >
-      <motion.img className="h-full w-full scale-110 object-cover" src={src} alt={alt} style={{ y }} />
+      <motion.img className="h-full w-full object-contain" src={src} alt={alt} style={{ y }} />
     </motion.div>
   )
 }
