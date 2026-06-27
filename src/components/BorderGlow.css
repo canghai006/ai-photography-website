@@ -22,7 +22,7 @@
 
 .auth-orbit-frame {
   background:
-    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    linear-gradient(transparent, transparent) padding-box,
     linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)) border-box;
 }
 
@@ -33,7 +33,6 @@
 
 .auth-orbit-frame .border-glow-inner {
   background: rgba(8, 9, 11, 0.6);
-  backdrop-filter: blur(10px);
 }
 
 .auth-orbit-frame .edge-light {
