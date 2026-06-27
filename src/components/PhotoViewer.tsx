@@ -82,6 +82,11 @@ export function PhotoViewer({ photo, onClose, initialCommentsOpen = false }: { p
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      onClose()
+      return
+    }
+    if (!(event.target instanceof HTMLImageElement)) return
     if (scale <= MIN_SCALE || event.button !== 0) return
     event.currentTarget.setPointerCapture(event.pointerId)
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin: offset }
@@ -128,7 +133,7 @@ export function PhotoViewer({ photo, onClose, initialCommentsOpen = false }: { p
 
   return (
     <motion.div className="fixed inset-0 z-[100] flex bg-black/85 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <motion.div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden" initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={{ duration: 0.24 }} onClick={(event) => event.stopPropagation()} onWheel={handleWheel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
+      <motion.div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden" initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={{ duration: 0.24 }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); else event.stopPropagation() }} onWheel={handleWheel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
         <img
           draggable={false}
           className={`max-h-[88vh] max-w-[92vw] select-none object-contain will-change-transform ${scale > 1 ? dragging ? 'cursor-grabbing' : 'cursor-grab' : 'cursor-zoom-in'}`}
@@ -143,10 +148,10 @@ export function PhotoViewer({ photo, onClose, initialCommentsOpen = false }: { p
           {scale > 1 ? <button aria-label="重置缩放" title="重置缩放" onClick={resetView}><RotateCcw size={16} /></button> : null}
         </div>
 
-        <div className="absolute right-5 top-5 flex items-center gap-2">
+        <div className="absolute right-5 top-5 flex items-center gap-2" onPointerDown={(event) => event.stopPropagation()}>
           <a className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-sm text-white backdrop-blur-md hover:bg-white hover:text-black" download href={photo.imageUrl} onClick={(event) => event.stopPropagation()}><Download size={17} />下载</a>
           <button className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-sm text-white backdrop-blur-md hover:bg-white hover:text-black" onClick={() => setCommentsOpen((value) => !value)}><MessageCircle size={17} />评论</button>
-          <button aria-label="关闭查看器" className="rounded-full border border-white/15 bg-black/60 p-2.5 text-white backdrop-blur-md hover:bg-white hover:text-black" onClick={onClose}><X size={19} /></button>
+          <button aria-label="关闭查看器" className="rounded-full border border-white/15 bg-black/60 p-2.5 text-white backdrop-blur-md hover:bg-white hover:text-black" onClick={(event) => { event.stopPropagation(); onClose() }}><X size={19} /></button>
         </div>
 
         <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-4 py-2 text-xs text-zinc-300 backdrop-blur-md">滚轮缩放 · 放大后拖拽 · ESC 关闭</div>
