@@ -312,7 +312,23 @@ export function Home() {
           <div className="flex w-max animate-galleryMarquee gap-5 pr-5">
             {marqueePhotos.map((photo, index) => (
               <div className="w-[320px] shrink-0 md:w-[390px]" key={`${photo.id}-${index}`}>
-                <PhotoCard photo={photo} />
+                <PhotoCard
+                  canLike={false}
+                  onLike={() => undefined}
+                  showLike={false}
+                  photo={{
+                    id: String(photo.id),
+                    title: photo.title,
+                    description: '',
+                    category: photo.category,
+                    imageUrl: photo.image,
+                    likeCount: 0,
+                    liked: false,
+                    score: photo.score,
+                    analysisId: null,
+                    user: { username: 'yingxi', displayName: '影析精选' },
+                  }}
+                />
               </div>
             ))}
           </div>

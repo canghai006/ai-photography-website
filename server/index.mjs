@@ -43,6 +43,8 @@ const analysesPath = path.join(storageDir, 'analyses.json')
 const dbPath = path.join(storageDir, 'app.db')
 const distDir = path.join(rootDir, 'dist')
 const arkTimeoutMs = Number(process.env.ARK_TIMEOUT_MS || 55000)
+const sessionCookieName = 'yingxi_session'
+const sessionMaxAgeMs = 30 * 24 * 60 * 60 * 1000
 
 await fs.mkdir(storageDir, { recursive: true })
 await fs.mkdir(uploadDir, { recursive: true })
@@ -60,9 +62,89 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp'])
+    if (allowed.has(file.mimetype)) return cb(null, true)
+    const error = new Error('仅支持 JPG、PNG 和 WEBP 图片')
+    error.code = 'INVALID_FILE_TYPE'
+    return cb(error, false)
+  },
 })
 
+app.set('trust proxy', 1)
 app.use(express.json({ limit: '4mb' }))
+
+function parseCookies(req) {
+  return Object.fromEntries(String(req.headers.cookie || '').split(';').map((part) => {
+    const index = part.indexOf('=')
+    if (index < 0) return ['', '']
+    const value = part.slice(index + 1).trim()
+    try {
+      return [part.slice(0, index).trim(), decodeURIComponent(value)]
+    } catch {
+      return [part.slice(0, index).trim(), value]
+    }
+  }).filter(([key]) => key))
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const derived = crypto.scryptSync(password, salt, 64).toString('hex')
+  return `${salt}:${derived}`
+}
+
+function verifyPassword(password, storedHash) {
+  if (!storedHash || !storedHash.includes(':')) return false
+  const [salt, expectedHex] = storedHash.split(':')
+  const actual = crypto.scryptSync(password, salt, 64)
+  const expected = Buffer.from(expectedHex, 'hex')
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected)
+}
+
+function setSessionCookie(res, token) {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RAILWAY_ENVIRONMENT)
+  const parts = [
+    `${sessionCookieName}=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${Math.floor(sessionMaxAgeMs / 1000)}`,
+  ]
+  if (secure) parts.push('Secure')
+  res.setHeader('Set-Cookie', parts.join('; '))
+}
+
+function clearSessionCookie(res) {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RAILWAY_ENVIRONMENT)
+  res.setHeader('Set-Cookie', `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`)
+}
+
+function optionalAuth(req, _res, next) {
+  const token = parseCookies(req)[sessionCookieName]
+  req.sessionTokenHash = token ? hashToken(token) : null
+  req.user = req.sessionTokenHash ? database.getUserBySession(req.sessionTokenHash) : null
+  next()
+}
+
+function requireAuth(req, res, next) {
+  optionalAuth(req, res, () => {
+    if (!req.user) return res.status(401).json({ error: '请先登录后再继续' })
+    next()
+  })
+}
+
+function createLoginSession(user, res) {
+  const token = crypto.randomBytes(32).toString('base64url')
+  database.createSession({
+    userId: user.id,
+    tokenHash: hashToken(token),
+    expiresAt: new Date(Date.now() + sessionMaxAgeMs).toISOString(),
+  })
+  setSessionCookie(res, token)
+}
 
 // --- Multer error handling ---
 function handleMulterError(err, _req, res, next) {
@@ -70,6 +152,7 @@ function handleMulterError(err, _req, res, next) {
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({ error: '文件大小超过限制（最大 50MB），请压缩后重新上传' })
   }
+  if (err.code === 'INVALID_FILE_TYPE') return res.status(400).json({ error: err.message })
   if (err.name === 'MulterError' || err.code?.startsWith('LIMIT_')) {
     return res.status(400).json({ error: err.message || '文件上传失败' })
   }
@@ -77,7 +160,50 @@ function handleMulterError(err, _req, res, next) {
 }
 
 app.get('/api/health', (_req, res) => {
-  return res.json({ ok: true })
+  return res.json({ ok: true, database: 'sqlite' })
+})
+
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim()
+    const displayName = String(req.body?.displayName || username).trim()
+    const email = String(req.body?.email || '').trim().toLowerCase()
+    const password = String(req.body?.password || '')
+    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+      return res.status(400).json({ error: '用户名需为 3—24 位字母、数字或下划线' })
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: '请输入有效邮箱' })
+    if (password.length < 8) return res.status(400).json({ error: '密码至少需要 8 位' })
+    const user = database.createAuthUser({ username, displayName: displayName || username, email, passwordHash: hashPassword(password) })
+    createLoginSession(user, res)
+    return res.status(201).json({ user })
+  } catch (error) {
+    const message = String(error?.message || '')
+    if (message.includes('UNIQUE constraint failed')) return res.status(409).json({ error: '用户名或邮箱已被注册' })
+    return res.status(500).json({ error: '注册失败，请稍后重试' })
+  }
+})
+
+app.post('/api/auth/login', (req, res) => {
+  const login = String(req.body?.login || '').trim()
+  const password = String(req.body?.password || '')
+  const account = database.findUserForLogin(login)
+  if (!account || !verifyPassword(password, account.passwordHash)) {
+    return res.status(401).json({ error: '账号或密码不正确' })
+  }
+  const user = database.getUser(account.id)
+  createLoginSession(user, res)
+  return res.json({ user })
+})
+
+app.post('/api/auth/logout', optionalAuth, (req, res) => {
+  if (req.sessionTokenHash) database.deleteSession(req.sessionTokenHash)
+  clearSessionCookie(res)
+  return res.status(204).end()
+})
+
+app.get('/api/auth/me', optionalAuth, (req, res) => {
+  return res.json({ user: req.user || null })
 })
 
 function buildMockAnalysis(imageUrl) {
@@ -98,10 +224,26 @@ function buildMockAnalysis(imageUrl) {
       光影分析: '明暗过渡自然，阴影区域保留细节，画面空间感较完整。',
       色彩分析: '冷色调和低饱和方向统一，局部亮部能够形成轻微视觉锚点。',
       情绪表达: '影像情绪偏安静、疏离、克制，具有明显的个人作者气质。',
-      改进建议: '建议适度压低局部高光，并收紧少量边缘信息，让主体更集中。',
+      改进建议: '改进方向：建议适度压低局部高光，并收紧少量边缘信息，让主体更集中。\n\n调色建议：白平衡可轻微向冷色偏移，高光减少约 10%，阴影略微抬升；适当降低整体饱和度，并保留亮部的暖色，让冷暖关系更清晰、画面更有电影感。',
     },
     source: 'mock',
   }
+}
+
+function ensureColorGradingAdvice(analysis) {
+  const sections = analysis?.sections && typeof analysis.sections === 'object'
+    ? { ...analysis.sections }
+    : {}
+  const improvement = typeof sections.改进建议 === 'string' ? sections.改进建议.trim() : ''
+  const separateColorAdvice = typeof sections.调色建议 === 'string' ? sections.调色建议.trim() : ''
+
+  if (!improvement.includes('调色建议')) {
+    const colorAdvice = separateColorAdvice || '建议根据画面主色调整白平衡，并分别微调高光、阴影和主要色相的饱和度，使主体更突出、整体色调更统一。'
+    sections.改进建议 = `${improvement || '改进方向：可进一步优化主体与背景的视觉关系。'}\n\n调色建议：${colorAdvice.replace(/^调色建议[：:]\s*/, '')}`
+  }
+
+  delete sections.调色建议
+  return { ...analysis, sections }
 }
 
 async function callArkVision({ base64DataUrl }) {
@@ -126,7 +268,7 @@ async function callArkVision({ base64DataUrl }) {
         {
           role: 'system',
           content:
-            '你是一名专业摄影评论人。请用中文返回严格 JSON，不要 markdown，不要额外说明。字段必须包含 overallScore(number), tags(string[]), scores(object: 构图/光影/色彩/情绪/后期空间), sections(object: 作品亮点/构图分析/光影分析/色彩分析/情绪表达/改进建议)。分数范围 0-100。',
+            '你是一名专业摄影评论人。请用中文返回严格 JSON，不要 markdown，不要额外说明。字段必须包含 overallScore(number), tags(string[]), scores(object: 构图/光影/色彩/情绪/后期空间), sections(object: 作品亮点/构图分析/光影分析/色彩分析/情绪表达/改进建议)。分数范围 0-100。改进建议必须是一个字符串，并严格分成“改进方向：……”和“调色建议：……”两段，中间用两个换行符分隔。调色建议必须结合当前照片给出可操作的调色方案，至少涉及白平衡、曝光或明暗、HSL、饱和度、曲线、色彩分级中的三项，并说明调整方向或参考幅度，避免使用泛泛而谈的套话。',
         },
         {
           role: 'user',
@@ -197,7 +339,7 @@ async function buildArkImage(fileBuffer) {
   return { apiBuffer, base64DataUrl: `data:image/jpeg;base64,${apiBuffer.toString('base64')}` }
 }
 
-app.post('/api/analyze', upload.single('image'), handleMulterError, async (req, res) => {
+app.post('/api/analyze', requireAuth, upload.single('image'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: '未检测到上传的图片，请选择图片后重试' })
@@ -235,6 +377,8 @@ app.post('/api/analyze', upload.single('image'), handleMulterError, async (req, 
       analysis.error = error instanceof Error ? error.message : 'Ark request failed'
     }
 
+    analysis = ensureColorGradingAdvice(analysis)
+
     console.log(JSON.stringify({
       event: 'analysis_complete',
       source: analysis.source,
@@ -244,7 +388,7 @@ app.post('/api/analyze', upload.single('image'), handleMulterError, async (req, 
       error: analysis.error || null,
     }))
 
-    const userId = req.body.userId || database.DEFAULT_USER_ID
+    const userId = req.user.id
     const photoId = database.createPhoto({
       userId,
       title: req.body.title,
@@ -289,71 +433,105 @@ app.post('/api/analyze', upload.single('image'), handleMulterError, async (req, 
   }
 })
 
-app.get('/api/analyses/latest', async (_req, res) => {
-  const record = database.getLatestAnalysis()
+app.get('/api/analyses/latest', requireAuth, async (req, res) => {
+  const record = database.getLatestAnalysis(req.user.id)
   if (!record) {
     return res.status(404).json({ error: 'No analyses found' })
   }
   return res.json(record)
 })
 
-app.get('/api/analyses/:id', async (req, res) => {
+app.get('/api/analyses/:id', optionalAuth, async (req, res) => {
   const record = database.getAnalysis(req.params.id)
-  if (!record) {
+  const canView = record && (record.photo.userId === req.user?.id || database.isPublicPhoto(record.photo.id))
+  if (!canView) {
     return res.status(404).json({ error: 'Analysis not found' })
   }
   return res.json(record)
 })
 
-app.get('/api/users', (_req, res) => {
-  return res.json(database.listUsers())
+app.get('/api/me/analyses', requireAuth, (req, res) => {
+  return res.json(database.listUserAnalyses(req.user.id))
 })
 
-app.post('/api/users', (req, res) => {
+app.get('/api/me/photos', requireAuth, (req, res) => {
+  return res.json(database.listPhotos({ userId: req.user.id, limit: 100 }))
+})
+
+app.get('/api/gallery', optionalAuth, (req, res) => {
+  return res.json(database.listGallery(req.user?.id))
+})
+
+app.post('/api/gallery', requireAuth, upload.single('image'), handleMulterError, async (req, res) => {
   try {
-    const user = database.upsertUser(req.body || {})
-    return res.status(201).json(user)
+    if (!req.file) return res.status(400).json({ error: '请选择要上传的作品' })
+    const title = String(req.body.title || '').trim()
+    const description = String(req.body.description || '').trim()
+    const category = String(req.body.category || '其他').trim()
+    if (!title) {
+      await fs.unlink(req.file.path).catch(() => undefined)
+      return res.status(400).json({ error: '请填写作品标题' })
+    }
+    const fileBuffer = await fs.readFile(req.file.path)
+    const meta = await sharp(fileBuffer).metadata()
+    const photoId = database.createPhoto({
+      userId: req.user.id,
+      title,
+      description,
+      category,
+      isPublic: true,
+      originalFilename: req.file.originalname,
+      storedFilename: path.basename(req.file.path),
+      imageUrl: `/uploads/${path.basename(req.file.path)}`,
+      mimeType: req.file.mimetype || 'image/jpeg',
+      size: req.file.size,
+      width: meta.width,
+      height: meta.height,
+      metadata: { format: meta.format, space: meta.space, channels: meta.channels, depth: meta.depth },
+    })
+    const uploadedPhoto = database.listGallery(req.user.id).find((photo) => photo.id === photoId)
+    return res.status(201).json(uploadedPhoto)
   } catch (error) {
-    return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to save user' })
+    return res.status(400).json({ error: error instanceof Error ? error.message : '作品上传失败' })
   }
 })
 
-app.get('/api/photos', (req, res) => {
+app.get('/api/photos', requireAuth, (req, res) => {
   const limit = Math.min(Number(req.query.limit || 50), 100)
-  const userId = req.query.userId ? String(req.query.userId) : undefined
-  return res.json(database.listPhotos({ limit, userId }))
+  return res.json(database.listPhotos({ limit, userId: req.user.id }))
 })
 
 app.get('/api/photos/:photoId/comments', (req, res) => {
   return res.json(database.listComments(req.params.photoId))
 })
 
-app.post('/api/photos/:photoId/comments', (req, res) => {
+app.post('/api/photos/:photoId/comments', requireAuth, (req, res) => {
   const content = String(req.body?.content || '').trim()
   if (!content) {
     return res.status(400).json({ error: 'Comment content is required' })
   }
   const comment = database.addComment({
     photoId: req.params.photoId,
-    userId: req.body?.userId,
+    userId: req.user.id,
     content,
   })
   return res.status(201).json(comment)
 })
 
-app.post('/api/photos/:photoId/likes', (req, res) => {
+app.post('/api/photos/:photoId/likes', requireAuth, (req, res) => {
   try {
-    return res.json(database.toggleLike({ photoId: req.params.photoId, userId: req.body?.userId }))
+    if (!database.isPublicPhoto(req.params.photoId)) return res.status(404).json({ error: '作品不存在' })
+    return res.json(database.toggleLike({ photoId: req.params.photoId, userId: req.user.id }))
   } catch (error) {
     return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to update like' })
   }
 })
 
-app.post('/api/photos/:photoId/collections', (req, res) => {
+app.post('/api/photos/:photoId/collections', requireAuth, (req, res) => {
   try {
     return res.status(201).json(database.addToCollection({
       photoId: req.params.photoId,
-      userId: req.body?.userId,
+      userId: req.user.id,
       name: req.body?.name,
     }))
   } catch (error) {
@@ -361,9 +539,8 @@ app.post('/api/photos/:photoId/collections', (req, res) => {
   }
 })
 
-app.get('/api/collections', (req, res) => {
-  const userId = req.query.userId ? String(req.query.userId) : database.DEFAULT_USER_ID
-  return res.json(database.listCollections(userId))
+app.get('/api/collections', requireAuth, (req, res) => {
+  return res.json(database.listCollections(req.user.id))
 })
 
 app.use('/uploads', express.static(uploadDir))

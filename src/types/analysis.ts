@@ -10,4 +10,14 @@ export type AnalysisRecord = {
   sections: Record<string, string>
   source?: string
   error?: string
+  photo?: {
+    id: string
+    userId: string
+    title: string
+    description: string
+    width?: number | null
+    height?: number | null
+    size?: number
+    createdAt: string
+  }
 }

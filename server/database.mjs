@@ -44,6 +44,21 @@ function rowToAnalysisRecord(row) {
   }
 }
 
+function publicUser(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    username: row.username,
+    displayName: row.displayName ?? row.display_name,
+    email: row.email,
+    avatarUrl: row.avatarUrl ?? row.avatar_url,
+    bio: row.bio,
+    role: row.role,
+    createdAt: row.createdAt ?? row.created_at,
+    updatedAt: row.updatedAt ?? row.updated_at,
+  }
+}
+
 export function createDatabase({ dbPath, legacyAnalysesPath }) {
   const db = new DatabaseSync(dbPath)
   db.exec('PRAGMA foreign_keys = ON')
@@ -58,6 +73,7 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       avatar_url TEXT,
       bio TEXT,
       role TEXT NOT NULL DEFAULT 'photographer',
+      password_hash TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -75,6 +91,8 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       width INTEGER,
       height INTEGER,
       metadata_json TEXT,
+      category TEXT NOT NULL DEFAULT '其他',
+      is_public INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -128,12 +146,31 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_photos_user_created ON photos(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_analysis_photo_created ON analysis_results(photo_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_comments_photo_created ON comments(photo_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_likes_photo ON likes(photo_id);
     CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash);
   `)
+
+  const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map((column) => column.name))
+  if (!userColumns.has('password_hash')) db.exec('ALTER TABLE users ADD COLUMN password_hash TEXT')
+  const photoColumns = new Set(db.prepare('PRAGMA table_info(photos)').all().map((column) => column.name))
+  if (!photoColumns.has('category')) db.exec("ALTER TABLE photos ADD COLUMN category TEXT NOT NULL DEFAULT '其他'")
+  if (!photoColumns.has('is_public')) db.exec('ALTER TABLE photos ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0')
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_nocase ON users(username COLLATE NOCASE)')
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_nocase ON users(email COLLATE NOCASE) WHERE email IS NOT NULL')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_photos_public_created ON photos(is_public, created_at DESC)')
 
   const now = new Date().toISOString()
   db.prepare(`
@@ -255,12 +292,58 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
     },
 
     getUser(id) {
-      return db.prepare(`
+      return publicUser(db.prepare(`
         SELECT id, username, display_name AS displayName, email, avatar_url AS avatarUrl, bio, role,
           created_at AS createdAt, updated_at AS updatedAt
         FROM users
         WHERE id = ?
-      `).get(id)
+      `).get(id))
+    },
+
+    createAuthUser({ username, displayName, email, passwordHash }) {
+      const id = crypto.randomUUID()
+      const createdAt = new Date().toISOString()
+      db.prepare(`
+        INSERT INTO users (id, username, display_name, email, password_hash, role, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 'photographer', ?, ?)
+      `).run(id, username, displayName, email, passwordHash, createdAt, createdAt)
+      return this.getUser(id)
+    },
+
+    findUserForLogin(login) {
+      return db.prepare(`
+        SELECT id, username, display_name AS displayName, email, avatar_url AS avatarUrl, bio, role,
+          password_hash AS passwordHash, created_at AS createdAt, updated_at AS updatedAt
+        FROM users
+        WHERE lower(email) = lower(?) OR lower(username) = lower(?)
+        LIMIT 1
+      `).get(login, login)
+    },
+
+    createSession({ userId, tokenHash, expiresAt }) {
+      const id = crypto.randomUUID()
+      const createdAt = new Date().toISOString()
+      db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(createdAt)
+      db.prepare(`
+        INSERT INTO sessions (id, user_id, token_hash, expires_at, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(id, userId, tokenHash, expiresAt, createdAt)
+      return id
+    },
+
+    getUserBySession(tokenHash) {
+      const row = db.prepare(`
+        SELECT u.id, u.username, u.display_name AS displayName, u.email, u.avatar_url AS avatarUrl,
+          u.bio, u.role, u.created_at AS createdAt, u.updated_at AS updatedAt
+        FROM sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.token_hash = ? AND s.expires_at > ?
+      `).get(tokenHash, new Date().toISOString())
+      return publicUser(row)
+    },
+
+    deleteSession(tokenHash) {
+      db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash)
     },
 
     listUsers() {
@@ -272,15 +355,15 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       `).all()
     },
 
-    createPhoto({ userId, title, description, originalFilename, storedFilename, imageUrl, mimeType, size, width, height, metadata }) {
+    createPhoto({ userId, title, description, originalFilename, storedFilename, imageUrl, mimeType, size, width, height, metadata, category, isPublic }) {
       const id = crypto.randomUUID()
       const createdAt = new Date().toISOString()
       db.prepare(`
         INSERT INTO photos (
           id, user_id, title, description, original_filename, stored_filename, image_url,
-          mime_type, size, width, height, metadata_json, created_at, updated_at
+          mime_type, size, width, height, metadata_json, category, is_public, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id,
         userId || DEFAULT_USER_ID,
@@ -294,6 +377,8 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
         width || null,
         height || null,
         jsonStringify(metadata, {}),
+        category || '其他',
+        isPublic ? 1 : 0,
         createdAt,
         createdAt,
       )
@@ -325,7 +410,7 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       return this.getAnalysis(analysisId)
     },
 
-    getAnalysis(id) {
+    getAnalysis(id, userId) {
       const row = db.prepare(`
         SELECT
           ar.id,
@@ -349,12 +434,12 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
           p.created_at AS photo_created_at
         FROM analysis_results ar
         JOIN photos p ON p.id = ar.photo_id
-        WHERE ar.id = ?
-      `).get(id)
+        WHERE ar.id = ? AND (? IS NULL OR ar.user_id = ?)
+      `).get(id, userId || null, userId || null)
       return row ? rowToAnalysisRecord(row) : null
     },
 
-    getLatestAnalysis() {
+    getLatestAnalysis(userId) {
       const row = db.prepare(`
         SELECT
           ar.id,
@@ -378,9 +463,10 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
           p.created_at AS photo_created_at
         FROM analysis_results ar
         JOIN photos p ON p.id = ar.photo_id
+        WHERE (? IS NULL OR ar.user_id = ?)
         ORDER BY ar.created_at DESC
         LIMIT 1
-      `).get()
+      `).get(userId || null, userId || null)
       return row ? rowToAnalysisRecord(row) : null
     },
 
@@ -421,6 +507,55 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
           displayName: row.display_name,
         },
       }))
+    },
+
+    listUserAnalyses(userId, limit = 50) {
+      const rows = db.prepare(`
+        SELECT
+          ar.id, ar.created_at, ar.overall_score, ar.tags_json AS tags,
+          ar.scores_json AS scores, ar.sections_json AS sections, ar.source, ar.error,
+          p.id AS photo_id, p.user_id, p.title, p.description, p.original_filename,
+          p.image_url, p.mime_type, p.size, p.width, p.height, p.created_at AS photo_created_at
+        FROM analysis_results ar
+        JOIN photos p ON p.id = ar.photo_id
+        WHERE ar.user_id = ?
+        ORDER BY ar.created_at DESC
+        LIMIT ?
+      `).all(userId, limit)
+      return rows.map(rowToAnalysisRecord)
+    },
+
+    listGallery(viewerUserId, limit = 100) {
+      const rows = db.prepare(`
+        SELECT p.*, u.username, u.display_name,
+          (SELECT COUNT(*) FROM likes l WHERE l.photo_id = p.id) AS like_count,
+          EXISTS(SELECT 1 FROM likes l WHERE l.photo_id = p.id AND l.user_id = ?) AS liked,
+          (SELECT ar.id FROM analysis_results ar WHERE ar.photo_id = p.id ORDER BY ar.created_at DESC LIMIT 1) AS analysis_id,
+          (SELECT ar.overall_score FROM analysis_results ar WHERE ar.photo_id = p.id ORDER BY ar.created_at DESC LIMIT 1) AS score
+        FROM photos p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.is_public = 1
+        ORDER BY p.created_at DESC
+        LIMIT ?
+      `).all(viewerUserId || '', limit)
+      return rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        title: row.title,
+        description: row.description,
+        category: row.category || '其他',
+        imageUrl: row.image_url,
+        createdAt: row.created_at,
+        likeCount: Number(row.like_count || 0),
+        liked: Boolean(row.liked),
+        analysisId: row.analysis_id || null,
+        score: row.score ?? null,
+        user: { username: row.username, displayName: row.display_name },
+      }))
+    },
+
+    isPublicPhoto(photoId) {
+      return Boolean(db.prepare('SELECT 1 AS found FROM photos WHERE id = ? AND is_public = 1').get(photoId))
     },
 
     addComment({ photoId, userId, content }) {

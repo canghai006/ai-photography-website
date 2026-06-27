@@ -27,6 +27,7 @@ tmp_effect_frames/
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+.vs/
 .idea
 .DS_Store
 *.suo

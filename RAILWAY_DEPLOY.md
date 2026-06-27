@@ -2,6 +2,8 @@
 
 这个项目已经适配 Railway 单服务部署：Express 后端会托管 `dist` 前端静态文件，同时提供 `/api` 接口和 `/uploads` 图片访问。
 
+数据库使用部署在同一服务持久化卷上的 SQLite，保存用户账号、加密后的密码、登录会话、照片、AI 分析结果、作品集和点赞记录。登录会话使用 HttpOnly Cookie。
+
 ## 1. Railway 配置
 
 在 Railway 新建项目后，选择从 GitHub 仓库部署。

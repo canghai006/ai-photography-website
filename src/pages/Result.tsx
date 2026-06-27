@@ -100,7 +100,7 @@ export function Result() {
                   <BorderGlow borderRadius={8} backgroundColor="#080808" glowColor={index % 2 ? '264 90 78' : '40 90 78'} glowIntensity={0.65}>
                     <article className="min-h-60 p-7">
                       <h3 className="text-2xl font-medium text-amber-100">{title}</h3>
-                      <p className="mt-5 leading-8 text-zinc-400">{analysis.sections[title] || '暂无内容'}</p>
+                      <p className="mt-5 whitespace-pre-line leading-8 text-zinc-400">{analysis.sections[title] || '暂无内容'}</p>
                     </article>
                   </BorderGlow>
                 </FadeUp>

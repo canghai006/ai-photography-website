@@ -1,15 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ImagePlus, Loader2, Upload } from 'lucide-react'
 import { type ChangeEvent, type CSSProperties, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { BorderGlow } from '../components/BorderGlow'
 import type { AnalysisRecord } from '../types/analysis'
+import { useAuth } from '../context/AuthContext'
 
 const loadingSteps = ['正在分析构图...', '正在读取光影...', '正在理解色彩情绪...', '正在生成改进建议...']
 const loadingStepDelays = [0, 4000, 12000, 30000]
 
 export function Analyze() {
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [loading, setLoading] = useState(false)
@@ -74,6 +76,9 @@ export function Analyze() {
       window.clearTimeout(requestTimeout)
     }
   }
+
+  if (!authLoading && !user) return <Navigate replace state={{ from: '/analyze' }} to="/auth" />
+  if (authLoading) return <main className="min-h-screen bg-black pt-32 text-center text-zinc-400">正在确认登录状态...</main>
 
   return (
     <main
