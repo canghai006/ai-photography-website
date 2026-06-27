@@ -419,6 +419,18 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       return db.prepare('DELETE FROM users WHERE id = ?').run(userId).changes > 0
     },
 
+    createPhotos(photos) {
+      db.exec('BEGIN')
+      try {
+        const ids = photos.map((photo) => this.createPhoto(photo))
+        db.exec('COMMIT')
+        return ids
+      } catch (error) {
+        db.exec('ROLLBACK')
+        throw error
+      }
+    },
+
     createPhoto({ userId, title, description, originalFilename, storedFilename, imageUrl, mimeType, size, width, height, metadata, category, isPublic }) {
       const id = crypto.randomUUID()
       const createdAt = new Date().toISOString()

@@ -133,7 +133,7 @@ export function PhotoViewer({ photo, onClose, initialCommentsOpen = false }: { p
 
   return (
     <motion.div className="fixed inset-0 z-[100] flex bg-black/85 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <motion.div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden" initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={{ duration: 0.24 }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); else event.stopPropagation() }} onWheel={handleWheel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
+      <motion.div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden" initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={{ duration: 0.24 }} onClick={(event) => event.stopPropagation()} onWheel={handleWheel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
         <img
           draggable={false}
           className={`max-h-[88vh] max-w-[92vw] select-none object-contain will-change-transform ${scale > 1 ? dragging ? 'cursor-grabbing' : 'cursor-grab' : 'cursor-zoom-in'}`}

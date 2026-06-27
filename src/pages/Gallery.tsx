@@ -19,7 +19,7 @@ export function Gallery() {
   const [error, setError] = useState('')
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null)
   const [viewerCommentsOpen, setViewerCommentsOpen] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', category: '其他', file: null as File | null })
+  const [form, setForm] = useState({ title: '', description: '', category: '其他', files: [] as File[] })
 
   async function loadGallery() {
     setError('')
@@ -51,11 +51,11 @@ export function Gallery() {
 
   async function submitUpload(event: FormEvent) {
     event.preventDefault()
-    if (!form.file) return setError('请选择一张图片')
+    if (form.files.length === 0) return setError('请至少选择一张图片')
     setSubmitting(true)
     setError('')
     const body = new FormData()
-    body.append('image', form.file)
+    form.files.forEach((file) => body.append('images', file))
     body.append('title', form.title)
     body.append('description', form.description)
     body.append('category', form.category)
@@ -63,7 +63,7 @@ export function Gallery() {
       const response = await fetch('/api/gallery', { method: 'POST', body })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error || '作品上传失败')
-      setForm({ title: '', description: '', category: '其他', file: null })
+      setForm({ title: '', description: '', category: '其他', files: [] })
       setUploadOpen(false)
       await loadGallery()
     } catch (requestError) {
@@ -94,11 +94,11 @@ export function Gallery() {
           <form className="relative mt-10 grid gap-5 rounded-2xl border border-white/10 bg-black/75 p-6 backdrop-blur-xl md:grid-cols-2" onSubmit={submitUpload}>
             <button type="button" aria-label="关闭上传" className="absolute right-5 top-5 text-zinc-400 hover:text-white" onClick={() => setUploadOpen(false)}><X size={20} /></button>
             <div className="md:col-span-2"><h2 className="text-2xl text-white">发布到作品集</h2><p className="mt-2 text-sm text-zinc-500">作品将公开展示，其他登录用户可以点赞。</p></div>
-            <label className="text-sm text-zinc-300">作品标题<input required className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-amber-200/60" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
+            <label className="text-sm text-zinc-300">作品标题（选填）<input className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-amber-200/60" placeholder="未填写时使用图片文件名" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
             <label className="text-sm text-zinc-300">分类<select className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-white outline-none" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{categories.slice(1).map((category) => <option key={category}>{category}</option>)}</select></label>
             <label className="text-sm text-zinc-300 md:col-span-2">作品说明<textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-amber-200/60" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
-            <label className="flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-white/20 p-6 text-sm text-zinc-300 hover:border-amber-200/50"><input required accept="image/jpeg,image/png,image/webp" type="file" className="hidden" onChange={(event) => setForm({ ...form, file: event.target.files?.[0] || null })} />{form.file ? form.file.name : '选择 JPG / PNG / WEBP 图片'}</label>
-            <button disabled={submitting} className="rounded-xl bg-amber-200 px-6 py-3 font-medium text-black disabled:opacity-60">{submitting ? '上传中...' : '发布作品'}</button>
+            <label className="flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-white/20 p-6 text-sm text-zinc-300 hover:border-amber-200/50"><input multiple accept="image/jpeg,image/png,image/webp" type="file" className="hidden" onChange={(event) => { const files = Array.from(event.target.files || []); if (files.length > 20) { setError('一次最多上传 20 张图片'); return }; setError(''); setForm({ ...form, files }) }} />{form.files.length > 0 ? `已选择 ${form.files.length} 张图片` : '多选 JPG / PNG / WEBP 图片（最多 20 张）'}</label>
+            <button disabled={submitting} className="rounded-xl bg-amber-200 px-6 py-3 font-medium text-black disabled:opacity-60">{submitting ? `正在上传 ${form.files.length} 张...` : '发布作品'}</button>
             {error ? <p className="text-sm text-rose-300 md:col-span-2">{error}</p> : null}
           </form>
         ) : error ? <p className="mt-7 text-sm text-rose-300">{error}</p> : null}

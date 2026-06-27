@@ -572,37 +572,49 @@ app.get('/api/gallery', optionalAuth, (req, res) => {
   return res.json(database.listGallery(req.user?.id))
 })
 
-app.post('/api/gallery', requireAuth, upload.single('image'), handleMulterError, async (req, res) => {
+app.post('/api/gallery', requireAuth, upload.array('images', 20), handleMulterError, async (req, res) => {
+  let persisted = false
   try {
-    if (!req.file) return res.status(400).json({ error: '请选择要上传的作品' })
+    const files = Array.isArray(req.files) ? req.files : []
+    if (files.length === 0) return res.status(400).json({ error: '请至少选择一张图片' })
     const title = String(req.body.title || '').trim()
     const description = String(req.body.description || '').trim()
     const requestedCategory = String(req.body.category || '其他').trim()
     const category = galleryCategories.has(requestedCategory) ? requestedCategory : '其他'
-    if (!title) {
-      await fs.unlink(req.file.path).catch(() => undefined)
-      return res.status(400).json({ error: '请填写作品标题' })
-    }
-    const fileBuffer = await fs.readFile(req.file.path)
-    const meta = await sharp(fileBuffer).metadata()
-    const photoId = database.createPhoto({
+
+    const preparedFiles = await Promise.all(files.map(async (file, index) => {
+      const fileBuffer = await fs.readFile(file.path)
+      const meta = await sharp(fileBuffer).metadata()
+      const fallbackTitle = path.parse(file.originalname).name.trim() || '未命名作品'
+      return {
+        file,
+        meta,
+        photoTitle: title ? files.length > 1 ? `${title} ${index + 1}` : title : fallbackTitle,
+      }
+    }))
+
+    const photoIds = database.createPhotos(preparedFiles.map(({ file, meta, photoTitle }) => ({
       userId: req.user.id,
-      title,
+      title: photoTitle,
       description,
       category,
       isPublic: true,
-      originalFilename: req.file.originalname,
-      storedFilename: path.basename(req.file.path),
-      imageUrl: `/uploads/${path.basename(req.file.path)}`,
-      mimeType: req.file.mimetype || 'image/jpeg',
-      size: req.file.size,
+      originalFilename: file.originalname,
+      storedFilename: path.basename(file.path),
+      imageUrl: `/uploads/${path.basename(file.path)}`,
+      mimeType: file.mimetype || 'image/jpeg',
+      size: file.size,
       width: meta.width,
       height: meta.height,
       metadata: { format: meta.format, space: meta.space, channels: meta.channels, depth: meta.depth },
-    })
-    const uploadedPhoto = database.listGallery(req.user.id).find((photo) => photo.id === photoId)
-    return res.status(201).json(uploadedPhoto)
+    })))
+    persisted = true
+    const uploadedIds = new Set(photoIds)
+    const uploadedPhotos = database.listGallery(req.user.id).filter((photo) => uploadedIds.has(photo.id))
+    return res.status(201).json({ count: uploadedPhotos.length, photos: uploadedPhotos })
   } catch (error) {
+    const files = Array.isArray(req.files) ? req.files : []
+    if (!persisted) await Promise.all(files.map((file) => fs.unlink(file.path).catch(() => undefined)))
     return res.status(400).json({ error: error instanceof Error ? error.message : '作品上传失败' })
   }
 })
