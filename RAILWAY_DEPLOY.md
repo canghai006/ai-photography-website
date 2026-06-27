@@ -15,6 +15,7 @@ ARK_API_KEY=你的火山引擎 Ark API Key
 ARK_MODEL=你的 Ark 模型 Endpoint ID
 ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 STORAGE_DIR=/data
+ADMIN_EMAIL=你的管理员注册邮箱
 ```
 
 不要手动设置 `PORT`，Railway 会自动提供。

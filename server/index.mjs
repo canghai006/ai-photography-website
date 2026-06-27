@@ -43,6 +43,7 @@ const analysesPath = path.join(storageDir, 'analyses.json')
 const dbPath = path.join(storageDir, 'app.db')
 const distDir = path.join(rootDir, 'dist')
 const arkTimeoutMs = Number(process.env.ARK_TIMEOUT_MS || 55000)
+const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase()
 const sessionCookieName = 'yingxi_session'
 const sessionMaxAgeMs = 30 * 24 * 60 * 60 * 1000
 const guestAnalysisTtlMs = 60 * 60 * 1000
@@ -66,6 +67,7 @@ guestCleanupInterval.unref()
 
 const database = createDatabase({ dbPath, legacyAnalysesPath: analysesPath })
 await database.migrateLegacyAnalyses()
+if (adminEmail) database.setUserRoleByEmail(adminEmail, 'admin')
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
@@ -153,6 +155,13 @@ function requireAuth(req, res, next) {
   })
 }
 
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: '需要管理员权限' })
+    next()
+  })
+}
+
 function createLoginSession(user, res) {
   const token = crypto.randomBytes(32).toString('base64url')
   database.createSession({
@@ -189,7 +198,8 @@ app.post('/api/auth/register', (req, res) => {
     if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: '请输入有效邮箱' })
     if (password.length < 8) return res.status(400).json({ error: '密码至少需要 8 位' })
     const username = `user_${crypto.randomBytes(5).toString('hex')}`
-    const user = database.createAuthUser({ username, displayName: displayName || username, email, passwordHash: hashPassword(password) })
+    let user = database.createAuthUser({ username, displayName: displayName || username, email, passwordHash: hashPassword(password) })
+    if (adminEmail && email === adminEmail) user = database.setUserRoleByEmail(email, 'admin')
     createLoginSession(user, res)
     return res.status(201).json({ user })
   } catch (error) {
@@ -219,6 +229,35 @@ app.post('/api/auth/logout', optionalAuth, (req, res) => {
 
 app.get('/api/auth/me', optionalAuth, (req, res) => {
   return res.json({ user: req.user || null })
+})
+
+app.get('/api/admin/stats', requireAdmin, (_req, res) => {
+  return res.json(database.getAdminStats())
+})
+
+app.get('/api/admin/users', requireAdmin, (_req, res) => {
+  return res.json(database.listAdminUsers())
+})
+
+app.get('/api/admin/photos', requireAdmin, (_req, res) => {
+  return res.json(database.listAdminPhotos())
+})
+
+app.delete('/api/admin/photos/:photoId', requireAdmin, async (req, res) => {
+  const photo = database.deleteAdminPhoto(req.params.photoId)
+  if (!photo) return res.status(404).json({ error: '图片不存在' })
+  await fs.unlink(path.join(uploadDir, path.basename(photo.storedFilename))).catch(() => undefined)
+  return res.status(204).end()
+})
+
+app.delete('/api/admin/users/:userId', requireAdmin, async (req, res) => {
+  const target = database.getUser(req.params.userId)
+  if (!target) return res.status(404).json({ error: '用户不存在' })
+  if (target.id === req.user.id || target.role === 'admin') return res.status(400).json({ error: '不能删除管理员账号' })
+  const files = database.getUserStoredFilenames(target.id)
+  if (!database.deleteAdminUser(target.id)) return res.status(404).json({ error: '用户不存在' })
+  await Promise.all(files.map(({ storedFilename }) => fs.unlink(path.join(uploadDir, path.basename(storedFilename))).catch(() => undefined)))
+  return res.status(204).end()
 })
 
 function buildMockAnalysis(imageUrl) {

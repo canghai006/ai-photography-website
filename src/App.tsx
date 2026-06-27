@@ -10,6 +10,7 @@ import { Result } from './pages/Result'
 import { Auth } from './pages/Auth'
 import { Profile } from './pages/Profile'
 import { AuthProvider } from './context/AuthContext'
+import { Admin } from './pages/Admin'
 
 function App() {
   const location = useLocation()
@@ -50,6 +51,7 @@ function App() {
         <Route element={<Gallery />} path="/gallery" />
         <Route element={<Auth />} path="/auth" />
         <Route element={<Profile />} path="/profile" />
+        <Route element={<Admin />} path="/admin" />
       </Routes>
       <Footer />
     </div></AuthProvider>

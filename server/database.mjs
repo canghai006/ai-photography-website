@@ -355,6 +355,69 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
       `).all()
     },
 
+    setUserRoleByEmail(email, role = 'admin') {
+      if (!email) return null
+      db.prepare('UPDATE users SET role = ?, updated_at = ? WHERE lower(email) = lower(?)')
+        .run(role, new Date().toISOString(), email)
+      return publicUser(db.prepare(`
+        SELECT id, username, display_name AS displayName, email, avatar_url AS avatarUrl, bio, role,
+          created_at AS createdAt, updated_at AS updatedAt
+        FROM users WHERE lower(email) = lower(?)
+      `).get(email))
+    },
+
+    getAdminStats() {
+      return {
+        users: Number(db.prepare('SELECT COUNT(*) AS count FROM users WHERE id <> ?').get(DEFAULT_USER_ID).count),
+        photos: Number(db.prepare('SELECT COUNT(*) AS count FROM photos').get().count),
+        analyses: Number(db.prepare('SELECT COUNT(*) AS count FROM analysis_results').get().count),
+        publicPhotos: Number(db.prepare('SELECT COUNT(*) AS count FROM photos WHERE is_public = 1').get().count),
+        likes: Number(db.prepare('SELECT COUNT(*) AS count FROM likes').get().count),
+      }
+    },
+
+    listAdminUsers() {
+      return db.prepare(`
+        SELECT u.id, u.username, u.display_name AS displayName, u.email, u.role,
+          u.created_at AS createdAt,
+          (SELECT COUNT(*) FROM photos p WHERE p.user_id = u.id) AS photoCount,
+          (SELECT COUNT(*) FROM analysis_results ar WHERE ar.user_id = u.id) AS analysisCount
+        FROM users u
+        WHERE u.id <> ?
+        ORDER BY u.created_at DESC
+      `).all(DEFAULT_USER_ID)
+    },
+
+    listAdminPhotos() {
+      return db.prepare(`
+        SELECT p.id, p.user_id AS userId, p.title, p.description, p.category,
+          p.image_url AS imageUrl, p.stored_filename AS storedFilename,
+          p.is_public AS isPublic, p.created_at AS createdAt,
+          u.display_name AS ownerName, u.email AS ownerEmail,
+          (SELECT COUNT(*) FROM analysis_results ar WHERE ar.photo_id = p.id) AS analysisCount,
+          (SELECT COUNT(*) FROM likes l WHERE l.photo_id = p.id) AS likeCount
+        FROM photos p
+        JOIN users u ON u.id = p.user_id
+        ORDER BY p.created_at DESC
+      `).all().map((row) => ({ ...row, isPublic: Boolean(row.isPublic) }))
+    },
+
+    getUserStoredFilenames(userId) {
+      return db.prepare('SELECT stored_filename AS storedFilename FROM photos WHERE user_id = ?').all(userId)
+    },
+
+    deleteAdminPhoto(photoId) {
+      const photo = db.prepare('SELECT id, stored_filename AS storedFilename FROM photos WHERE id = ?').get(photoId)
+      if (!photo) return null
+      db.prepare('DELETE FROM photos WHERE id = ?').run(photoId)
+      return photo
+    },
+
+    deleteAdminUser(userId) {
+      if (!userId || userId === DEFAULT_USER_ID) return false
+      return db.prepare('DELETE FROM users WHERE id = ?').run(userId).changes > 0
+    },
+
     createPhoto({ userId, title, description, originalFilename, storedFilename, imageUrl, mimeType, size, width, height, metadata, category, isPublic }) {
       const id = crypto.randomUUID()
       const createdAt = new Date().toISOString()

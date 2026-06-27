@@ -35,6 +35,7 @@ export function Navbar() {
               {label}
             </NavLink>
           ))}
+          {user?.role === 'admin' ? <NavLink className="text-sm tracking-widest text-amber-100 transition hover:text-white" to="/admin">管理后台</NavLink> : null}
         </nav>
         <Link className="hidden items-center gap-2 rounded-full border border-amber-200/40 px-5 py-2.5 text-sm text-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-200 hover:text-black lg:inline-flex" to={user ? '/profile' : '/auth'}>
           <UserRound size={16} /> {loading ? '账号' : user ? user.displayName : '登录 / 注册'}
@@ -54,6 +55,7 @@ export function Navbar() {
             <NavLink onClick={() => setOpen(false)} to={user ? '/profile' : '/auth'} className="text-amber-100">
               {user ? `个人中心 · ${user.displayName}` : '登录 / 注册'}
             </NavLink>
+            {user?.role === 'admin' ? <NavLink onClick={() => setOpen(false)} to="/admin" className="text-amber-100">管理后台</NavLink> : null}
           </div>
         </div>
       )}
