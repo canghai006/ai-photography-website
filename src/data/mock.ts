@@ -50,7 +50,7 @@ export const photos = [
   {
     id: 1,
     title: '夜色候场',
-    category: '街头',
+    category: '其他',
     score: 86,
     tags: ['电影感', '冷色调'],
     image: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=1200&q=90',
@@ -74,7 +74,7 @@ export const photos = [
   {
     id: 4,
     title: '立面秩序',
-    category: '建筑',
+    category: '其他',
     score: 88,
     tags: ['几何', '建筑'],
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=90',
@@ -82,7 +82,7 @@ export const photos = [
   {
     id: 5,
     title: '银盐街角',
-    category: '黑白',
+    category: '其他',
     score: 79,
     tags: ['黑白', '街头'],
     image: 'https://images.unsplash.com/photo-1488685062520-56d9c949f77d?auto=format&fit=crop&w=1200&q=90',
@@ -90,7 +90,7 @@ export const photos = [
   {
     id: 6,
     title: '雨后片场',
-    category: '电影感',
+    category: '其他',
     score: 93,
     tags: ['电影感', '胶片'],
     image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=90',

@@ -1,11 +1,13 @@
 import { ImagePlus, X } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { FadeUp } from '../components/Animated'
 import { PhotoCard, type GalleryPhoto } from '../components/PhotoCard'
 import { useAuth } from '../context/AuthContext'
+import { PhotoViewer } from '../components/PhotoViewer'
 
-const categories = ['全部', '人像', '风光', '街头', '建筑', '黑白', '电影感', '胶片', '其他']
+const categories = ['全部', '风光', '人像', '其他']
 
 export function Gallery() {
   const { user } = useAuth()
@@ -15,6 +17,7 @@ export function Gallery() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null)
   const [form, setForm] = useState({ title: '', description: '', category: '其他', file: null as File | null })
 
   async function loadGallery() {
@@ -77,6 +80,7 @@ export function Gallery() {
             <div>
               <p className="text-sm tracking-[0.35em] text-amber-100/80">摄影师公开作品</p>
               <h1 className="page-title mt-5 max-w-4xl text-6xl font-medium leading-tight text-white md:text-7xl">摄影作品集</h1>
+              <p className="mt-4 text-sm text-zinc-400">双击任意作品查看大图、缩放细节与评论。</p>
             </div>
             {user ? (
               <button className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-200 px-6 py-3 font-medium text-black" onClick={() => setUploadOpen(true)}><ImagePlus size={19} />上传我的作品</button>
@@ -110,11 +114,12 @@ export function Gallery() {
         ) : (
           <section className="gallery-grid mt-14 grid auto-rows-[220px] grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
             {visiblePhotos.map((photo, index) => (
-              <FadeUp key={photo.id} delay={index * 0.04}><div className={index % 3 === 0 ? 'row-span-3' : 'row-span-2'}><PhotoCard canLike={Boolean(user)} photo={photo} onLike={toggleLike} /></div></FadeUp>
+              <FadeUp key={photo.id} delay={index * 0.04}><div className={index % 3 === 0 ? 'row-span-3' : 'row-span-2'}><PhotoCard canLike={Boolean(user)} photo={photo} onLike={toggleLike} onOpen={setSelectedPhoto} /></div></FadeUp>
             ))}
           </section>
         )}
       </div>
+      <AnimatePresence>{selectedPhoto ? <PhotoViewer key={selectedPhoto.id} photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} /> : null}</AnimatePresence>
     </main>
   )
 }

@@ -19,12 +19,13 @@ type PhotoCardProps = {
   canLike: boolean
   onLike: (photoId: string) => void
   showLike?: boolean
+  onOpen?: (photo: GalleryPhoto) => void
 }
 
-export function PhotoCard({ photo, canLike, onLike, showLike = true }: PhotoCardProps) {
+export function PhotoCard({ photo, canLike, onLike, showLike = true, onOpen }: PhotoCardProps) {
   return (
     <article className="group relative h-full min-h-[430px] overflow-hidden rounded-md border border-white/10 bg-zinc-950">
-      <img className="h-full w-full object-cover transition duration-700 group-hover:scale-105" src={photo.imageUrl} alt={photo.title} />
+      <img className={`h-full w-full object-cover transition duration-700 group-hover:scale-105 ${onOpen ? 'cursor-zoom-in' : ''}`} draggable={false} src={photo.imageUrl} alt={photo.title} title={onOpen ? '双击查看大图' : undefined} onDoubleClick={() => onOpen?.(photo)} />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80 transition group-hover:opacity-95" />
       {showLike ? <button disabled={!canLike} title={canLike ? '点赞' : '登录后可点赞'} className={`absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm backdrop-blur-md transition ${photo.liked ? 'border-rose-300/60 bg-rose-400/20 text-rose-200' : 'border-white/20 bg-black/35 text-white'} disabled:cursor-not-allowed disabled:opacity-60`} onClick={() => onLike(photo.id)}>
         <Heart fill={photo.liked ? 'currentColor' : 'none'} size={17} /> {photo.likeCount}

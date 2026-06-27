@@ -168,6 +168,7 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
   const photoColumns = new Set(db.prepare('PRAGMA table_info(photos)').all().map((column) => column.name))
   if (!photoColumns.has('category')) db.exec("ALTER TABLE photos ADD COLUMN category TEXT NOT NULL DEFAULT '其他'")
   if (!photoColumns.has('is_public')) db.exec('ALTER TABLE photos ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0')
+  db.exec("UPDATE photos SET category = '其他' WHERE category NOT IN ('风光', '人像', '其他')")
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_nocase ON users(username COLLATE NOCASE)')
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_nocase ON users(email COLLATE NOCASE) WHERE email IS NOT NULL')
   db.exec('CREATE INDEX IF NOT EXISTS idx_photos_public_created ON photos(is_public, created_at DESC)')
@@ -628,7 +629,14 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
         INSERT INTO comments (id, photo_id, user_id, content, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(id, photoId, userId || DEFAULT_USER_ID, content, createdAt, createdAt)
-      return { id, photoId, userId: userId || DEFAULT_USER_ID, content, createdAt, updatedAt: createdAt }
+      return db.prepare(`
+        SELECT c.id, c.photo_id AS photoId, c.user_id AS userId, c.content,
+          c.created_at AS createdAt, c.updated_at AS updatedAt,
+          u.username, u.display_name AS displayName
+        FROM comments c
+        JOIN users u ON u.id = c.user_id
+        WHERE c.id = ?
+      `).get(id)
     },
 
     listComments(photoId) {

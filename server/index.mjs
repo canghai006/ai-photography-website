@@ -48,6 +48,7 @@ const sessionCookieName = 'yingxi_session'
 const sessionMaxAgeMs = 30 * 24 * 60 * 60 * 1000
 const guestAnalysisTtlMs = 60 * 60 * 1000
 const guestAnalyses = new Map()
+const galleryCategories = new Set(['风光', '人像', '其他'])
 
 await fs.mkdir(storageDir, { recursive: true })
 await fs.mkdir(uploadDir, { recursive: true })
@@ -558,7 +559,8 @@ app.post('/api/gallery', requireAuth, upload.single('image'), handleMulterError,
     if (!req.file) return res.status(400).json({ error: '请选择要上传的作品' })
     const title = String(req.body.title || '').trim()
     const description = String(req.body.description || '').trim()
-    const category = String(req.body.category || '其他').trim()
+    const requestedCategory = String(req.body.category || '其他').trim()
+    const category = galleryCategories.has(requestedCategory) ? requestedCategory : '其他'
     if (!title) {
       await fs.unlink(req.file.path).catch(() => undefined)
       return res.status(400).json({ error: '请填写作品标题' })
@@ -593,10 +595,12 @@ app.get('/api/photos', requireAuth, (req, res) => {
 })
 
 app.get('/api/photos/:photoId/comments', (req, res) => {
+  if (!database.isPublicPhoto(req.params.photoId)) return res.status(404).json({ error: '作品不存在' })
   return res.json(database.listComments(req.params.photoId))
 })
 
 app.post('/api/photos/:photoId/comments', requireAuth, (req, res) => {
+  if (!database.isPublicPhoto(req.params.photoId)) return res.status(404).json({ error: '作品不存在' })
   const content = String(req.body?.content || '').trim()
   if (!content) {
     return res.status(400).json({ error: 'Comment content is required' })
