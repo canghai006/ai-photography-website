@@ -16,11 +16,11 @@ export function Gallery() {
   )
 
   return (
-    <main className="cloudscape-page-bg min-h-screen px-6 pb-24 pt-36 lg:px-10">
+    <main className="gallery-page cloudscape-page-bg min-h-screen px-6 pb-24 pt-36 lg:px-10">
       <div className="mx-auto max-w-[1700px]">
         <FadeUp>
           <p className="text-sm tracking-[0.35em] text-amber-100/80">公开摄影作品</p>
-          <h1 className="mt-5 max-w-4xl text-6xl font-medium leading-tight text-white md:text-7xl">摄影作品集</h1>
+          <h1 className="page-title mt-5 max-w-4xl text-6xl font-medium leading-tight text-white md:text-7xl">摄影作品集</h1>
         </FadeUp>
 
         <div className="mt-12 flex flex-wrap gap-3">
@@ -39,7 +39,7 @@ export function Gallery() {
           ))}
         </div>
 
-        <section className="mt-14 grid auto-rows-[220px] grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section className="gallery-grid mt-14 grid auto-rows-[220px] grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
           {visiblePhotos.map((photo, index) => (
             <FadeUp key={photo.id} delay={index * 0.06}>
               <div className={index % 3 === 0 ? 'row-span-3' : 'row-span-2'}>

@@ -166,3 +166,14 @@
     animation: none;
   }
 }
+
+@media (max-width: 767px) and (hover: none) {
+  .analyze-frame:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .analyze-frame:hover .edge-light {
+    animation: none;
+  }
+}

@@ -39,7 +39,7 @@ export function Result() {
   }, [searchParams])
 
   return (
-    <main className="cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10">
+    <main className="result-page cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10">
       <div className="absolute inset-0 opacity-25" aria-hidden="true">
         <Aurora amplitude={1.05} blend={0.48} colorStops={['#38bdf8', '#7cff67', '#5227FF']} speed={0.4} />
       </div>
@@ -56,7 +56,7 @@ export function Result() {
               <p className="text-sm tracking-[0.35em] text-violet-200">摄影分析报告</p>
               <div className="mt-5 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
                 <div>
-                  <h1 className="text-6xl font-medium text-white md:text-7xl">摄影分析报告</h1>
+                  <h1 className="page-title text-6xl font-medium text-white md:text-7xl">摄影分析报告</h1>
                   <div className="mt-6 flex flex-wrap gap-3">
                     {analysis.tags.map((tag) => (
                       <span className="rounded-full border border-white/15 px-4 py-2 text-sm text-zinc-300" key={tag}>
@@ -74,10 +74,10 @@ export function Result() {
               </div>
             </FadeUp>
 
-            <div className="mt-16 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="result-summary mt-16 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
               <FadeUp>
                 <BorderGlow animated borderRadius={8} backgroundColor="#050507" glowColor="264 90 78">
-                  <img className="h-[720px] w-full object-cover" src={analysis.imageUrl} alt={analysis.filename} />
+                  <img className="result-image h-[720px] w-full object-cover" src={analysis.imageUrl} alt={analysis.filename} />
                 </BorderGlow>
               </FadeUp>
               <FadeUp delay={0.12}>
@@ -94,7 +94,7 @@ export function Result() {
               </FadeUp>
             </div>
 
-            <section className="mt-20 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <section className="result-details mt-20 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {sectionOrder.map((title, index) => (
                 <FadeUp key={title} delay={index * 0.06}>
                   <BorderGlow borderRadius={8} backgroundColor="#080808" glowColor={index % 2 ? '264 90 78' : '40 90 78'} glowIntensity={0.65}>

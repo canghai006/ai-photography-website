@@ -14,7 +14,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/35 shadow-2xl shadow-black/20 backdrop-blur-2xl transition duration-500">
+    <header className="site-header fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/35 shadow-2xl shadow-black/20 backdrop-blur-2xl transition duration-500">
       <div className="mx-auto flex h-20 max-w-[1700px] items-center justify-between px-6 lg:px-10">
         <Link className="text-lg font-semibold tracking-[0.28em] text-white" to="/">
           影析 AI

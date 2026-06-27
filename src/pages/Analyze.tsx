@@ -68,18 +68,18 @@ export function Analyze() {
 
   return (
     <main
-      className="analysis-page-bg cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10"
+      className="analyze-page analysis-page-bg cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10"
       style={{
         '--analysis-photo': preview ? `url("${preview}")` : 'url("/media/features-cloudscape.png")',
       } as CSSProperties}
     >
       <div className="relative z-10 mx-auto max-w-[1700px]">
-        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}>
+        <motion.div className="analyze-heading" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}>
           <p className="text-sm tracking-[0.35em] text-amber-100/80">上传分析</p>
           <h1 className="mt-5 text-6xl font-medium text-white md:text-7xl">上传你的摄影作品</h1>
         </motion.div>
 
-        <div className="mt-16 grid gap-8 lg:grid-cols-[1fr_0.7fr]">
+        <div className="analyze-grid mt-16 grid gap-8 lg:grid-cols-[1fr_0.7fr]">
           <BorderGlow
             borderRadius={8}
             className={`analyze-frame min-h-[560px] ${preview ? 'analyze-frame-uploaded' : ''}`}
@@ -91,7 +91,7 @@ export function Analyze() {
             glowRadius={12}
             fillOpacity={0.06}
           >
-            <label className="group flex min-h-[560px] cursor-pointer flex-col items-center justify-center bg-transparent p-8 text-center">
+            <label className="analyze-upload-label group flex min-h-[560px] cursor-pointer flex-col items-center justify-center bg-transparent p-8 text-center">
               {preview ? (
                 <img className="max-h-[520px] w-full object-contain" src={preview} alt="上传图片预览" />
               ) : (

@@ -46,7 +46,7 @@ export function Home() {
 
   return (
     <>
-      <section ref={heroRef} className="relative min-h-screen overflow-hidden bg-black">
+      <section ref={heroRef} className="home-hero relative min-h-screen overflow-hidden bg-black">
         <motion.video
           ref={videoRef}
           autoPlay
@@ -66,10 +66,10 @@ export function Home() {
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/84 via-transparent to-black/22" />
 
         <motion.div
-          className="relative z-20 mx-auto min-h-screen max-w-[1700px] px-6 lg:px-10"
+          className="hero-shell relative z-20 mx-auto min-h-screen max-w-[1700px] px-6 lg:px-10"
           style={{ opacity: heroTextOpacity, y: heroTextY }}
         >
-          <motion.div className="relative flex min-h-screen items-center justify-center">
+          <motion.div className="hero-stage relative flex min-h-screen items-center justify-center">
             <div className="hidden">
               <div>
                 <motion.p className="mb-6 text-sm tracking-[0.35em] text-amber-100/80" variants={heroLine}>
@@ -97,7 +97,7 @@ export function Home() {
             </div>
 
             <motion.div
-              className="absolute left-0 top-28 flex max-w-sm flex-col items-start text-left md:top-36"
+              className="hero-copy absolute left-0 top-28 flex max-w-sm flex-col items-start text-left md:top-36"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.95, delay: 1.6, ease: smoothEase }}
@@ -121,7 +121,7 @@ export function Home() {
             </motion.div>
 
             <motion.h1
-              className="max-w-6xl text-center font-serif text-6xl font-semibold leading-[0.84] text-white [text-shadow:0_0_34px_rgba(255,255,255,0.24)] md:text-8xl lg:text-[9.5rem]"
+              className="hero-brand max-w-6xl text-center font-serif text-6xl font-semibold leading-[0.84] text-white [text-shadow:0_0_34px_rgba(255,255,255,0.24)] md:text-8xl lg:text-[9.5rem]"
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.1, delay: 1, ease: smoothEase }}
@@ -130,7 +130,7 @@ export function Home() {
             </motion.h1>
 
             <motion.div
-              className="absolute inset-x-0 bottom-5 text-right md:bottom-12"
+              className="hero-capability absolute inset-x-0 bottom-5 text-right md:bottom-12"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.95, delay: 1.6, ease: smoothEase }}
@@ -271,12 +271,12 @@ export function Home() {
         </div>
       </section>
 
-      <section ref={demoRef} className="cloudscape-page-bg px-6 py-32 lg:px-10">
+      <section ref={demoRef} className="home-demo cloudscape-page-bg px-6 py-32 lg:px-10">
         <div className="mx-auto grid max-w-[1700px] items-center gap-14 lg:grid-cols-[0.95fr_1.05fr]">
-          <ImageReveal className="min-h-[620px]" src={demoImage} alt="示例摄影作品" targetRef={demoRef} />
+          <ImageReveal className="demo-image min-h-[620px]" src={demoImage} alt="示例摄影作品" targetRef={demoRef} />
           <div>
             <SectionIntro kicker="SAMPLE REPORT" title="一份可继续创作的专业反馈" />
-            <motion.div className="mt-10 border border-white/10 bg-black/55 p-8 backdrop-blur-xl" initial="hidden" whileInView="show" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}>
+            <motion.div className="demo-report mt-10 border border-white/10 bg-black/55 p-8 backdrop-blur-xl" initial="hidden" whileInView="show" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}>
               <motion.div className="grid gap-4 sm:grid-cols-2" variants={cardReveal}>
                 {Object.entries(scores).map(([label, value]) => (
                   <ScoreBar key={label} label={label} value={value} />
@@ -295,7 +295,7 @@ export function Home() {
         </div>
       </section>
 
-      <section className="cloudscape-page-bg overflow-hidden py-32">
+      <section className="home-gallery-preview cloudscape-page-bg overflow-hidden py-32">
         <div className="mx-auto max-w-[1700px] px-6 lg:px-10">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <SectionIntro kicker="PUBLIC GALLERY" title="公开摄影作品集预览" />
@@ -319,7 +319,7 @@ export function Home() {
         </motion.div>
       </section>
 
-      <section className="cloudscape-page-bg relative overflow-hidden px-6 py-36 lg:px-10">
+      <section className="home-cta cloudscape-page-bg relative overflow-hidden px-6 py-36 lg:px-10">
         <div className="mx-auto max-w-[1200px] text-center">
           <SectionIntro align="center" kicker="START ANALYSIS" title="让每一张照片，都知道自己还能怎么变得更好。" />
           <DriftReveal delay={0.18} className="mt-10">

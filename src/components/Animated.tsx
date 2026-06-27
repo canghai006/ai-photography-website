@@ -64,7 +64,7 @@ export function SectionIntro({
   align?: 'left' | 'center'
 }) {
   return (
-    <div className={align === 'center' ? 'mx-auto max-w-5xl text-center' : 'max-w-5xl'}>
+    <div className={`section-intro ${align === 'center' ? 'mx-auto max-w-5xl text-center' : 'max-w-5xl'}`}>
       <DriftReveal>
         <p className="text-sm tracking-[0.42em] text-amber-100/75">{kicker}</p>
       </DriftReveal>
