@@ -20,7 +20,7 @@
   background-attachment: fixed;
 }
 
-.auth-orbit-frame {
+.border-glow-card.auth-orbit-frame {
   background:
     linear-gradient(transparent, transparent) padding-box,
     linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)) border-box;
