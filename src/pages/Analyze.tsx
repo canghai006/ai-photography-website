@@ -7,6 +7,7 @@ import { BorderGlow } from '../components/BorderGlow'
 import type { AnalysisRecord } from '../types/analysis'
 
 const loadingSteps = ['正在分析构图...', '正在读取光影...', '正在理解色彩情绪...', '正在生成改进建议...']
+const loadingStepDelays = [0, 4000, 12000, 30000]
 
 export function Analyze() {
   const navigate = useNavigate()
@@ -30,7 +31,10 @@ export function Analyze() {
     if (!file) return
     setLoading(true)
     setError('')
-    loadingSteps.forEach((_, index) => window.setTimeout(() => setStep(index), index * 900))
+    setStep(0)
+    const loadingTimers = loadingStepDelays.map((delay, index) => window.setTimeout(() => setStep(index), delay))
+    const controller = new AbortController()
+    const requestTimeout = window.setTimeout(() => controller.abort(), 70000)
 
     try {
       const formData = new FormData()
@@ -39,6 +43,7 @@ export function Analyze() {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       })
 
       if (!response.ok) {
@@ -50,9 +55,15 @@ export function Analyze() {
       localStorage.setItem('latest-analysis-id', analysis.id)
       navigate(`/result?id=${analysis.id}`)
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : '上传失败，请稍后再试')
+      const message = requestError instanceof DOMException && requestError.name === 'AbortError'
+        ? '分析等待时间过长，请稍后重试或换一张较小的照片'
+        : requestError instanceof Error ? requestError.message : '上传失败，请稍后再试'
+      setError(message)
       setLoading(false)
       setStep(0)
+    } finally {
+      loadingTimers.forEach(window.clearTimeout)
+      window.clearTimeout(requestTimeout)
     }
   }
 

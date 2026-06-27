@@ -42,6 +42,7 @@ const uploadDir = path.join(storageDir, 'uploads')
 const analysesPath = path.join(storageDir, 'analyses.json')
 const dbPath = path.join(storageDir, 'app.db')
 const distDir = path.join(rootDir, 'dist')
+const arkTimeoutMs = Number(process.env.ARK_TIMEOUT_MS || 55000)
 
 await fs.mkdir(storageDir, { recursive: true })
 await fs.mkdir(uploadDir, { recursive: true })
@@ -102,6 +103,7 @@ async function callArkVision({ base64DataUrl }) {
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
+    signal: AbortSignal.timeout(arkTimeoutMs),
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
@@ -124,6 +126,7 @@ async function callArkVision({ base64DataUrl }) {
       ],
       response_format: { type: 'json_object' },
       temperature: 0.5,
+      max_tokens: 1200,
     }),
   })
 
@@ -153,21 +156,17 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
     const storedFilename = path.basename(filePath)
     const imageUrl = `/uploads/${storedFilename}`
     
-    // Ark API 限制最大 3600 万像素，压缩超大图片
-    const MAX_PIXELS = 34000000
     const meta = await sharp(fileBuffer).metadata()
-    const totalPixels = (meta.width || 0) * (meta.height || 0)
-    let apiBuffer = fileBuffer
-    if (totalPixels > MAX_PIXELS) {
-      const scale = Math.sqrt(MAX_PIXELS / totalPixels)
-      const newWidth = Math.round((meta.width || 1) * scale)
-      const newHeight = Math.round((meta.height || 1) * scale)
-      apiBuffer = await sharp(fileBuffer)
-        .resize(newWidth, newHeight, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toBuffer()
-    }
-    const base64DataUrl = `data:${mimeType};base64,${apiBuffer.toString('base64')}`
+    const requestStartedAt = Date.now()
+
+    // Keep the uploaded original, but send Ark a smaller copy to reduce transfer and vision-token latency.
+    const apiBuffer = await sharp(fileBuffer)
+      .rotate()
+      .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
+      .flatten({ background: '#ffffff' })
+      .jpeg({ quality: 82, chromaSubsampling: '4:2:0' })
+      .toBuffer()
+    const base64DataUrl = `data:image/jpeg;base64,${apiBuffer.toString('base64')}`
     let analysis
     try {
       analysis = await callArkVision({ base64DataUrl })
@@ -176,6 +175,15 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
       analysis = buildMockAnalysis(imageUrl)
       analysis.error = error instanceof Error ? error.message : 'Ark request failed'
     }
+
+    console.log(JSON.stringify({
+      event: 'analysis_complete',
+      source: analysis.source,
+      originalBytes: fileBuffer.length,
+      arkImageBytes: apiBuffer.length,
+      durationMs: Date.now() - requestStartedAt,
+      error: analysis.error || null,
+    }))
 
     const userId = req.body.userId || database.DEFAULT_USER_ID
     const photoId = database.createPhoto({
