@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ImagePlus, Loader2, Upload } from 'lucide-react'
 import { type ChangeEvent, type CSSProperties, useMemo, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BorderGlow } from '../components/BorderGlow'
 import type { AnalysisRecord } from '../types/analysis'
 import { useAuth } from '../context/AuthContext'
@@ -11,7 +11,7 @@ const loadingStepDelays = [0, 4000, 12000, 30000]
 
 export function Analyze() {
   const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [loading, setLoading] = useState(false)
@@ -77,9 +77,6 @@ export function Analyze() {
     }
   }
 
-  if (!authLoading && !user) return <Navigate replace state={{ from: '/analyze' }} to="/auth" />
-  if (authLoading) return <main className="min-h-screen bg-black pt-32 text-center text-zinc-400">正在确认登录状态...</main>
-
   return (
     <main
       className="analyze-page analysis-page-bg cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10"
@@ -135,6 +132,11 @@ export function Analyze() {
               <Upload className="text-violet-200" size={32} />
               <h2 className="mt-8 text-3xl font-medium text-white">分析前预览</h2>
               <p className="mt-4 leading-7 text-zinc-400">上传后会模拟生成专业摄影点评报告，包含评分、风格标签和改进建议。</p>
+              {user ? (
+                <p className="mt-4 text-sm leading-6 text-emerald-200/80">当前已登录，照片与分析结果会自动保存到个人中心。</p>
+              ) : (
+                <p className="mt-4 text-sm leading-6 text-zinc-500">无需登录也能分析；游客结果仅临时保留。<Link className="ml-1 text-amber-100 hover:underline" state={{ from: '/analyze' }} to="/auth">登录后可长期保存记录</Link></p>
+              )}
               <button
                 className="mt-10 w-full rounded-full bg-amber-200 px-7 py-4 font-medium text-black transition hover:-translate-y-1 hover:bg-violet-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
                 disabled={!file || loading}

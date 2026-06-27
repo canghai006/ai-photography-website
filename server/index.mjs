@@ -45,17 +45,34 @@ const distDir = path.join(rootDir, 'dist')
 const arkTimeoutMs = Number(process.env.ARK_TIMEOUT_MS || 55000)
 const sessionCookieName = 'yingxi_session'
 const sessionMaxAgeMs = 30 * 24 * 60 * 60 * 1000
+const guestAnalysisTtlMs = 60 * 60 * 1000
+const guestAnalyses = new Map()
 
 await fs.mkdir(storageDir, { recursive: true })
 await fs.mkdir(uploadDir, { recursive: true })
+
+async function cleanupStaleGuestUploads() {
+  const entries = await fs.readdir(uploadDir, { withFileTypes: true }).catch(() => [])
+  await Promise.all(entries.filter((entry) => entry.isFile() && entry.name.startsWith('guest-')).map(async (entry) => {
+    const filePath = path.join(uploadDir, entry.name)
+    const stat = await fs.stat(filePath).catch(() => null)
+    if (stat && Date.now() - stat.mtimeMs >= guestAnalysisTtlMs) await fs.unlink(filePath).catch(() => undefined)
+  }))
+}
+
+await cleanupStaleGuestUploads()
+const guestCleanupInterval = setInterval(() => void cleanupStaleGuestUploads(), guestAnalysisTtlMs)
+guestCleanupInterval.unref()
+
 const database = createDatabase({ dbPath, legacyAnalysesPath: analysesPath })
 await database.migrateLegacyAnalyses()
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
+  filename: (req, file, cb) => {
     const ext = path.extname(file.originalname) || '.jpg'
-    cb(null, `${Date.now()}-${crypto.randomUUID()}${ext}`)
+    const prefix = req.user ? '' : 'guest-'
+    cb(null, `${prefix}${Date.now()}-${crypto.randomUUID()}${ext}`)
   },
 })
 
@@ -165,21 +182,19 @@ app.get('/api/health', (_req, res) => {
 
 app.post('/api/auth/register', (req, res) => {
   try {
-    const username = String(req.body?.username || '').trim()
-    const displayName = String(req.body?.displayName || username).trim()
+    const displayName = String(req.body?.displayName || '').trim()
     const email = String(req.body?.email || '').trim().toLowerCase()
     const password = String(req.body?.password || '')
-    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
-      return res.status(400).json({ error: '用户名需为 3—24 位字母、数字或下划线' })
-    }
+    if (displayName.length < 1 || displayName.length > 30) return res.status(400).json({ error: '名称需为 1—30 个字符' })
     if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: '请输入有效邮箱' })
     if (password.length < 8) return res.status(400).json({ error: '密码至少需要 8 位' })
+    const username = `user_${crypto.randomBytes(5).toString('hex')}`
     const user = database.createAuthUser({ username, displayName: displayName || username, email, passwordHash: hashPassword(password) })
     createLoginSession(user, res)
     return res.status(201).json({ user })
   } catch (error) {
     const message = String(error?.message || '')
-    if (message.includes('UNIQUE constraint failed')) return res.status(409).json({ error: '用户名或邮箱已被注册' })
+    if (message.includes('UNIQUE constraint failed')) return res.status(409).json({ error: '该邮箱已被注册' })
     return res.status(500).json({ error: '注册失败，请稍后重试' })
   }
 })
@@ -339,7 +354,7 @@ async function buildArkImage(fileBuffer) {
   return { apiBuffer, base64DataUrl: `data:image/jpeg;base64,${apiBuffer.toString('base64')}` }
 }
 
-app.post('/api/analyze', requireAuth, upload.single('image'), handleMulterError, async (req, res) => {
+app.post('/api/analyze', optionalAuth, upload.single('image'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: '未检测到上传的图片，请选择图片后重试' })
@@ -387,6 +402,41 @@ app.post('/api/analyze', requireAuth, upload.single('image'), handleMulterError,
       durationMs: Date.now() - requestStartedAt,
       error: analysis.error || null,
     }))
+
+    if (!req.user) {
+      const guestId = `guest-${crypto.randomUUID()}`
+      const createdAt = new Date().toISOString()
+      const record = {
+        id: guestId,
+        createdAt,
+        imageUrl,
+        filename: req.file.originalname,
+        mimeType,
+        overallScore: analysis.overallScore,
+        tags: analysis.tags,
+        scores: analysis.scores,
+        sections: analysis.sections,
+        source: analysis.source,
+        error: analysis.error,
+        photo: {
+          id: guestId,
+          userId: null,
+          title: req.file.originalname,
+          description: '',
+          width: meta.width,
+          height: meta.height,
+          size: req.file.size,
+          createdAt,
+        },
+      }
+      guestAnalyses.set(guestId, record)
+      const cleanupTimer = setTimeout(async () => {
+        guestAnalyses.delete(guestId)
+        await fs.unlink(filePath).catch(() => undefined)
+      }, guestAnalysisTtlMs)
+      cleanupTimer.unref()
+      return res.json(record)
+    }
 
     const userId = req.user.id
     const photoId = database.createPhoto({
@@ -442,6 +492,8 @@ app.get('/api/analyses/latest', requireAuth, async (req, res) => {
 })
 
 app.get('/api/analyses/:id', optionalAuth, async (req, res) => {
+  const guestRecord = guestAnalyses.get(req.params.id)
+  if (guestRecord) return res.json(guestRecord)
   const record = database.getAnalysis(req.params.id)
   const canView = record && (record.photo.userId === req.user?.id || database.isPublicPhoto(record.photo.id))
   if (!canView) {

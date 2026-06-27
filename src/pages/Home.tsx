@@ -167,7 +167,7 @@ export function Home() {
         </motion.div>
       </section>
 
-      <section id="features" className="features-section cloudscape-page-bg relative overflow-hidden px-6 py-16 lg:px-10 lg:py-20">
+      <section id="features" className="features-section cloudscape-page-bg relative scroll-mt-20 overflow-hidden px-6 py-16 lg:px-10 lg:py-20">
         <div className="features-vignette" aria-hidden="true" />
         <div className="features-lens-flare" aria-hidden="true" />
         <div className="features-grain" aria-hidden="true" />

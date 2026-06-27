@@ -29,8 +29,16 @@ function App() {
   }, [])
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' })
-  }, [location.pathname])
+    if (!location.hash) {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [location.pathname, location.hash])
 
   return (
     <AuthProvider><div className="min-h-screen bg-black text-white">

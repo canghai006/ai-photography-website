@@ -10,7 +10,7 @@ export function Auth() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [form, setForm] = useState({ login: '', username: '', displayName: '', email: '', password: '' })
+  const [form, setForm] = useState({ login: '', displayName: '', email: '', password: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -22,7 +22,7 @@ export function Auth() {
     setError('')
     try {
       if (mode === 'login') await login(form.login, form.password)
-      else await register({ username: form.username, displayName: form.displayName, email: form.email, password: form.password })
+      else await register({ displayName: form.displayName, email: form.email, password: form.password })
       const next = (location.state as { from?: string } | null)?.from || '/profile'
       navigate(next, { replace: true })
     } catch (requestError) {
@@ -33,25 +33,22 @@ export function Auth() {
   }
 
   return (
-    <main className="cloudscape-page-bg min-h-screen px-6 pb-24 pt-32 lg:px-10">
+    <main className="auth-page-bg min-h-screen px-6 pb-24 pt-32 lg:px-10">
       <motion.div className="mx-auto max-w-xl" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}>
         <div className="mb-8 text-center">
           <Camera className="mx-auto text-amber-100" size={34} />
           <h1 className="mt-5 text-4xl font-medium text-white">{mode === 'login' ? '欢迎回来' : '创建摄影师账号'}</h1>
           <p className="mt-3 text-zinc-400">登录后保存你的照片、分析记录与作品集互动。</p>
         </div>
-        <BorderGlow animated borderRadius={18} backgroundColor="#08090b" glowColor="40 90 78">
+        <BorderGlow className="auth-orbit-frame" borderRadius={18} backgroundColor="#08090b" glowColor="42 92 76" glowIntensity={0.6}>
           <form className="space-y-5 p-7 md:p-9" onSubmit={submit}>
             {mode === 'login' ? (
-              <label className="block text-sm text-zinc-300">用户名或邮箱
+              <label className="block text-sm text-zinc-300">邮箱
                 <input required className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3.5 text-white outline-none focus:border-amber-200/60" value={form.login} onChange={(event) => setForm({ ...form, login: event.target.value })} />
               </label>
             ) : (
               <>
-                <label className="block text-sm text-zinc-300">用户名
-                  <input required minLength={3} maxLength={24} className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3.5 text-white outline-none focus:border-amber-200/60" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
-                </label>
-                <label className="block text-sm text-zinc-300">显示名称
+                <label className="block text-sm text-zinc-300">你的名称
                   <input required className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3.5 text-white outline-none focus:border-amber-200/60" value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} />
                 </label>
                 <label className="block text-sm text-zinc-300">邮箱
