@@ -10,16 +10,6 @@ import { demoImage, features, photos, reportBlocks, scores } from '../data/mock'
 const icons = [Crop, Lightbulb, Palette, Eye, Download, Star]
 const marqueePhotos = [...photos, ...photos]
 
-const heroContainer: Variants = {
-  hidden: {},
-  show: {
-    transition: {
-      delayChildren: 2.05,
-      staggerChildren: 0.16,
-    },
-  },
-}
-
 const heroLine: Variants = {
   hidden: { opacity: 0, y: 92 },
   show: {
@@ -76,15 +66,10 @@ export function Home() {
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/84 via-transparent to-black/22" />
 
         <motion.div
-          className="relative z-20 mx-auto min-h-screen max-w-[1700px] px-6 pt-24 lg:px-10"
+          className="relative z-20 mx-auto min-h-screen max-w-[1700px] px-6 lg:px-10"
           style={{ opacity: heroTextOpacity, y: heroTextY }}
         >
-          <motion.div
-            className="grid min-h-screen grid-rows-[1fr_auto_1fr] pb-14 pt-20 md:pb-20 lg:pt-24"
-            initial="hidden"
-            animate="show"
-            variants={heroContainer}
-          >
+          <motion.div className="relative flex min-h-screen items-center justify-center">
             <div className="hidden">
               <div>
                 <motion.p className="mb-6 text-sm tracking-[0.35em] text-amber-100/80" variants={heroLine}>
@@ -111,40 +96,47 @@ export function Home() {
               </motion.div>
             </div>
 
-            <motion.aside className="self-end border-l border-amber-100/80 pl-5 md:max-w-sm md:pl-7" variants={heroDetail}>
-              <p className="font-serif text-xl font-semibold tracking-[0.18em] text-amber-100 md:text-3xl">
-                专题报告：
+            <motion.div
+              className="absolute left-0 top-28 flex max-w-sm flex-col items-start text-left md:top-36"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.95, delay: 1.6, ease: smoothEase }}
+            >
+              <p className="text-sm font-semibold tracking-[0.32em] text-amber-100/65 md:text-base">
+                INTELLIGENT CRITIQUE
               </p>
-              <p className="mt-3 font-serif text-3xl font-semibold leading-tight text-white md:text-5xl">
-                AI 摄影
-                <span className="block">智能点评</span>
+
+              <p className="mt-5 font-serif text-3xl font-semibold leading-tight text-white/80 md:text-5xl">
+                影析AI深度点评
               </p>
-              <p className="mt-9 max-w-xs text-sm leading-7 text-zinc-300 md:text-base">
+              <p className="mt-6 max-w-sm text-sm leading-7 text-zinc-300/70 md:text-base">
                 上传一张照片，从构图、光影、色彩与情绪中，找到更清晰的创作方向。
               </p>
               <Link
-                className="mt-9 inline-flex rounded-full bg-amber-200 px-7 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-black transition duration-300 hover:-translate-y-1 hover:bg-white"
+                className="mt-7 inline-flex rounded-full bg-amber-200 px-7 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-black transition duration-300 hover:-translate-y-1 hover:bg-white"
                 to="/analyze"
               >
                 开始分析
               </Link>
-            </motion.aside>
+            </motion.div>
 
             <motion.h1
-              className="mx-auto max-w-6xl self-center text-center font-serif text-6xl font-semibold leading-[0.84] text-sky-200/80 drop-shadow-[0_0_32px_rgba(186,230,253,0.32)] md:text-8xl lg:text-[9.5rem]"
-              initial={{ opacity: 0, scale: 0.82, filter: 'blur(18px)' }}
-              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-              transition={{ duration: 1.35, delay: 1.5, ease: smoothEase }}
+              className="max-w-6xl text-center font-serif text-6xl font-semibold leading-[0.84] text-white [text-shadow:0_0_34px_rgba(255,255,255,0.24)] md:text-8xl lg:text-[9.5rem]"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.1, delay: 1, ease: smoothEase }}
             >
               PhotoVision
             </motion.h1>
 
-            <motion.div className="self-end text-left md:justify-self-end md:text-right" variants={heroLine}>
-              <p className="text-sm font-semibold tracking-[0.26em] text-amber-100">
-                专业能力：
-              </p>
-              <p className="mt-3 max-w-md text-2xl font-medium leading-snug text-white md:text-3xl">
-                专业摄影分析、报告归档与作品回顾。
+            <motion.div
+              className="absolute inset-x-0 bottom-5 text-right md:bottom-12"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.95, delay: 1.6, ease: smoothEase }}
+            >
+              <p className="ml-auto max-w-md text-sm leading-7 tracking-[0.06em] text-zinc-300/65 md:text-base">
+                核心能力：专业影像解析、作品归档与作品画廊系统
               </p>
             </motion.div>
 
@@ -175,29 +167,28 @@ export function Home() {
         </motion.div>
       </section>
 
-      <section id="features" className="features-section relative overflow-hidden px-6 py-32 lg:px-10 lg:py-40">
-        <div className="features-photo-backdrop" aria-hidden="true" />
+      <section id="features" className="features-section cloudscape-page-bg relative overflow-hidden px-6 py-16 lg:px-10 lg:py-20">
         <div className="features-vignette" aria-hidden="true" />
         <div className="features-lens-flare" aria-hidden="true" />
         <div className="features-grain" aria-hidden="true" />
         <div className="relative z-10 mx-auto max-w-[1700px]">
           <div className="max-w-6xl">
             <DriftReveal>
-              <p className="text-sm tracking-[0.42em] text-amber-100/70">智能摄影点评</p>
+              <p className="text-sm tracking-[0.42em] text-amber-100/70">影析AI点评</p>
             </DriftReveal>
             <DriftReveal delay={0.12}>
-              <h2 className="mt-6 text-5xl font-medium leading-[1.08] text-white md:text-7xl lg:text-8xl">
+              <h2 className="mt-3 text-4xl font-medium leading-[1.08] text-white md:text-5xl lg:text-6xl">
                 让 AI 读懂你的每一张照片
               </h2>
             </DriftReveal>
             <DriftReveal delay={0.2}>
-              <p className="mt-7 max-w-3xl text-base leading-8 text-zinc-300/70 md:text-xl md:leading-9">
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-300/70 md:text-base md:leading-8">
                 从构图、光影、色彩到情绪表达，为你的摄影作品生成专业分析与优化建议。
               </p>
             </DriftReveal>
           </div>
 
-          <DriftReveal delay={0.28} className="mt-14 lg:mt-20">
+          <DriftReveal delay={0.28} className="mt-7 lg:mt-8">
             <div className="analysis-flow" aria-label="摄影作品分析流程">
               {['上传照片', 'AI 分析', '获得建议', '优化作品'].map((step, index) => (
                 <div className="analysis-flow-step" key={step}>
@@ -208,12 +199,12 @@ export function Home() {
             </div>
           </DriftReveal>
 
-          <div className="mt-20 flex items-center gap-4 lg:mt-24">
+          <div className="mt-8 flex items-center gap-4">
             <span className="text-xs tracking-[0.32em] text-amber-100/65">核心能力</span>
             <span className="h-px flex-1 bg-gradient-to-r from-amber-100/25 to-transparent" />
           </div>
           <motion.div
-            className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+            className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
             initial="hidden"
             whileInView="show"
             viewport={{ once: false, margin: '0px 0px -8% 0px', amount: 0.12 }}
@@ -223,9 +214,10 @@ export function Home() {
               const Icon = icons[index]
               return (
                 <motion.article
-                  className="feature-card feature-card-core group min-h-72 origin-bottom p-7 md:p-9"
+                  className="feature-card feature-card-core group min-h-48 origin-bottom p-6 md:p-7"
                   key={title}
                   variants={cardReveal}
+                  whileHover={{ y: -8, scale: 1.045, transition: { duration: 0.42, ease: smoothEase } }}
                 >
                   <div className="relative z-10 flex items-start justify-between">
                     <span className="text-sm tracking-[0.3em] text-zinc-500">{number}</span>
@@ -233,21 +225,21 @@ export function Home() {
                       <Icon className="feature-icon text-amber-100" size={27} />
                     </span>
                   </div>
-                  <div className="relative z-10 mt-20">
-                    <h3 className="text-3xl font-medium text-white">{title}</h3>
-                    <p className="mt-5 max-w-sm leading-7 text-zinc-300/65">{text}</p>
+                  <div className="relative z-10 mt-8">
+                    <h3 className="text-2xl font-medium text-white">{title}</h3>
+                    <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-300/65">{text}</p>
                   </div>
                 </motion.article>
               )
             })}
           </motion.div>
 
-          <div className="mt-14 flex items-center gap-4">
+          <div className="mt-7 flex items-center gap-4">
             <span className="text-xs tracking-[0.32em] text-zinc-400/80">辅助能力</span>
             <span className="h-px flex-1 bg-gradient-to-r from-white/15 to-transparent" />
           </div>
           <motion.div
-            className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+            className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
             initial="hidden"
             whileInView="show"
             viewport={{ once: false, margin: '0px 0px -8% 0px', amount: 0.12 }}
@@ -256,16 +248,21 @@ export function Home() {
             {features.slice(3).map(([number, title, text], index) => {
               const Icon = icons[index + 3]
               return (
-                <motion.article className="feature-card group min-h-60 origin-bottom p-7 md:p-8" key={title} variants={cardReveal}>
+                <motion.article
+                  className="feature-card group min-h-44 origin-bottom p-6 md:p-7"
+                  key={title}
+                  variants={cardReveal}
+                  whileHover={{ y: -8, scale: 1.045, transition: { duration: 0.42, ease: smoothEase } }}
+                >
                   <div className="relative z-10 flex items-start justify-between">
                     <span className="text-sm tracking-[0.3em] text-zinc-600">{number}</span>
                     <span className="feature-icon-shell feature-icon-shell-muted">
                       <Icon className="feature-icon text-zinc-300" size={25} />
                     </span>
                   </div>
-                  <div className="relative z-10 mt-14">
-                    <h3 className="text-2xl font-medium text-zinc-100">{title}</h3>
-                    <p className="mt-4 max-w-sm leading-7 text-zinc-400/75">{text}</p>
+                  <div className="relative z-10 mt-7">
+                    <h3 className="text-xl font-medium text-zinc-100">{title}</h3>
+                    <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-400/75">{text}</p>
                   </div>
                 </motion.article>
               )
@@ -274,7 +271,7 @@ export function Home() {
         </div>
       </section>
 
-      <section ref={demoRef} className="bg-[#070707] px-6 py-32 lg:px-10">
+      <section ref={demoRef} className="cloudscape-page-bg px-6 py-32 lg:px-10">
         <div className="mx-auto grid max-w-[1700px] items-center gap-14 lg:grid-cols-[0.95fr_1.05fr]">
           <ImageReveal className="min-h-[620px]" src={demoImage} alt="示例摄影作品" targetRef={demoRef} />
           <div>
@@ -286,7 +283,7 @@ export function Home() {
                 ))}
               </motion.div>
               <div className="mt-10 grid gap-5 md:grid-cols-2">
-                {reportBlocks.slice(0, 5).map((block) => (
+                {reportBlocks.slice(0, 6).map((block) => (
                   <motion.div key={block.title} className="border-t border-white/10 pt-5" variants={cardReveal}>
                     <h3 className="text-lg text-amber-100">{block.title}</h3>
                     <p className="mt-3 text-sm leading-7 text-zinc-400">{block.text}</p>
@@ -298,7 +295,7 @@ export function Home() {
         </div>
       </section>
 
-      <section className="overflow-hidden bg-black py-32">
+      <section className="cloudscape-page-bg overflow-hidden py-32">
         <div className="mx-auto max-w-[1700px] px-6 lg:px-10">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <SectionIntro kicker="PUBLIC GALLERY" title="公开摄影作品集预览" />
@@ -322,8 +319,7 @@ export function Home() {
         </motion.div>
       </section>
 
-      <section className="relative overflow-hidden bg-[linear-gradient(120deg,#030303,#15110a_48%,#110b1f)] px-6 py-36 lg:px-10">
-        <div className="aurora-section-glow aurora-section-glow-right" aria-hidden="true" />
+      <section className="cloudscape-page-bg relative overflow-hidden px-6 py-36 lg:px-10">
         <div className="mx-auto max-w-[1200px] text-center">
           <SectionIntro align="center" kicker="START ANALYSIS" title="让每一张照片，都知道自己还能怎么变得更好。" />
           <DriftReveal delay={0.18} className="mt-10">

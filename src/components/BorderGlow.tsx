@@ -140,12 +140,18 @@ export function BorderGlow({
       const x = event.clientX - rect.left
       const y = event.clientY - rect.top
       const edge = getEdgeProximity(card, x, y)
+      const threshold = Math.max(0, 1 - edgeSensitivity / 100)
+      const edgeActivation = Math.min(Math.max((edge - threshold) / Math.max(1 - threshold, 0.01), 0), 1)
       const angle = getCursorAngle(card, x, y)
-      card.style.setProperty('--edge-proximity', `${(edge * 100).toFixed(3)}`)
+      card.style.setProperty('--edge-proximity', `${(edgeActivation * 100).toFixed(3)}`)
       card.style.setProperty('--cursor-angle', `${angle.toFixed(3)}deg`)
     },
-    [getCursorAngle, getEdgeProximity],
+    [edgeSensitivity, getCursorAngle, getEdgeProximity],
   )
+
+  const handlePointerLeave = useCallback(() => {
+    cardRef.current?.style.setProperty('--edge-proximity', '0')
+  }, [])
 
   useEffect(() => {
     if (!animated || !cardRef.current) return
@@ -193,7 +199,13 @@ export function BorderGlow({
   } as CSSProperties
 
   return (
-    <div ref={cardRef} className={`border-glow-card ${className}`} onPointerMove={handlePointerMove} style={style}>
+    <div
+      ref={cardRef}
+      className={`border-glow-card ${className}`}
+      onPointerLeave={handlePointerLeave}
+      onPointerMove={handlePointerMove}
+      style={style}
+    >
       <span className="edge-light" />
       <div className="border-glow-inner">{children}</div>
     </div>

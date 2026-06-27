@@ -121,20 +121,24 @@ img {
   background: rgba(238, 220, 171, 0.68);
 }
 
-.features-section {
-  background: #080a09;
-  isolation: isolate;
-}
-
-.features-photo-backdrop {
-  position: absolute;
-  inset: -4%;
-  background-image: url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=2200&q=78");
+.cloudscape-page-bg {
+  background-color: #050706;
+  background-image:
+    linear-gradient(180deg, rgba(3, 6, 5, 0.5), rgba(3, 3, 5, 0.72)),
+    url("/media/features-cloudscape.png");
   background-position: center;
   background-size: cover;
-  filter: grayscale(0.35) saturate(0.62) contrast(1.15) brightness(0.58);
-  opacity: 0.16;
-  transform: scale(1.04);
+  background-attachment: fixed;
+}
+
+.analysis-page-bg {
+  background-image:
+    linear-gradient(180deg, rgba(3, 6, 5, 0.28), rgba(3, 3, 5, 0.48)),
+    var(--analysis-photo);
+}
+
+.features-section {
+  isolation: isolate;
 }
 
 .features-vignette {
@@ -144,8 +148,8 @@ img {
     radial-gradient(circle at 18% 18%, rgba(43, 92, 68, 0.22), transparent 32%),
     radial-gradient(circle at 78% 27%, rgba(83, 57, 100, 0.2), transparent 30%),
     radial-gradient(circle at 62% 86%, rgba(160, 130, 70, 0.12), transparent 33%),
-    radial-gradient(ellipse at center, transparent 24%, rgba(2, 4, 3, 0.58) 76%, rgba(0, 0, 0, 0.9) 100%),
-    linear-gradient(180deg, rgba(5, 7, 6, 0.82), rgba(8, 10, 9, 0.55) 44%, rgba(5, 6, 6, 0.92));
+    radial-gradient(ellipse at center, transparent 24%, rgba(2, 4, 3, 0.32) 76%, rgba(0, 0, 0, 0.68) 100%),
+    linear-gradient(180deg, rgba(5, 7, 6, 0.48), rgba(8, 10, 9, 0.24) 44%, rgba(5, 6, 6, 0.68));
 }
 
 .features-lens-flare {
@@ -195,7 +199,7 @@ img {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  min-height: 92px;
+  min-height: 64px;
   color: rgba(244, 244, 245, 0.78);
   font-size: 0.9rem;
   letter-spacing: 0.08em;
@@ -247,9 +251,9 @@ img {
 }
 
 .feature-card:hover {
-  transform: translateY(-6px);
+  z-index: 5;
   border-color: rgba(237, 218, 165, 0.38);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 28px 76px rgba(0, 0, 0, 0.34), 0 0 38px rgba(164, 137, 80, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 30px 80px rgba(0, 0, 0, 0.38), 0 0 46px rgba(190, 158, 91, 0.17);
 }
 
 .feature-card:hover::before {
@@ -282,8 +286,12 @@ img {
 }
 
 @media (max-width: 640px) {
+  .cloudscape-page-bg {
+    background-attachment: scroll;
+  }
+
   .analysis-flow-step {
-    min-height: 82px;
+    min-height: 68px;
     flex-direction: column;
     gap: 8px;
     font-size: 0.68rem;

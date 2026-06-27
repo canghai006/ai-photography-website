@@ -1,3 +1,15 @@
+@property --analyze-orbit-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes analyzeBorderOrbit {
+  to {
+    --analyze-orbit-angle: 360deg;
+  }
+}
+
 .border-glow-card {
   --edge-proximity: 0;
   --cursor-angle: 0deg;
@@ -93,4 +105,64 @@
   border-radius: calc(var(--border-radius) - 1px);
   background: color-mix(in srgb, var(--card-bg) 82%, transparent);
   overflow: hidden;
+}
+
+.analyze-frame {
+  transform-origin: center;
+  background:
+    linear-gradient(transparent, transparent) padding-box,
+    conic-gradient(
+      from var(--cursor-angle),
+      transparent 0deg,
+      var(--glow-color-10) calc(var(--cone-spread) * 0.45deg),
+      var(--glow-color-60) calc(var(--cone-spread) * 1deg),
+      var(--glow-color) calc(var(--cone-spread) * 1.35deg),
+      var(--glow-color-60) calc(var(--cone-spread) * 1.85deg),
+      transparent calc(var(--cone-spread) * 2.35deg)
+    ) border-box;
+  transition:
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 520ms ease;
+  will-change: transform;
+}
+
+.analyze-frame .border-glow-inner {
+  background: rgba(7, 7, 10, 0.6);
+  transition: background-color 500ms ease;
+}
+
+.analyze-frame-uploaded .border-glow-inner {
+  background: rgba(7, 7, 10, 0.9);
+}
+
+.analyze-frame:hover {
+  z-index: 5;
+  transform: translateY(-5px) scale(1.022);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), 0 0 22px rgba(229, 214, 167, 0.1);
+}
+
+.analyze-frame:hover .edge-light {
+  opacity: 1;
+  background: conic-gradient(
+    from var(--analyze-orbit-angle),
+    transparent 0deg,
+    transparent 282deg,
+    var(--glow-color-20) 304deg,
+    var(--glow-color) 330deg,
+    transparent 360deg
+  );
+  filter: drop-shadow(0 0 10px var(--glow-color-60)) drop-shadow(0 0 3px var(--glow-color));
+  animation: analyzeBorderOrbit 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyze-frame,
+  .analyze-frame:hover {
+    transform: none;
+    transition-duration: 0.01ms;
+  }
+
+  .analyze-frame:hover .edge-light {
+    animation: none;
+  }
 }

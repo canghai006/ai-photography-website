@@ -39,11 +39,11 @@ export function Result() {
   }, [searchParams])
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black px-6 pb-24 pt-36 lg:px-10">
-      <div className="absolute inset-0 opacity-65" aria-hidden="true">
+    <main className="cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10">
+      <div className="absolute inset-0 opacity-25" aria-hidden="true">
         <Aurora amplitude={1.05} blend={0.48} colorStops={['#38bdf8', '#7cff67', '#5227FF']} speed={0.4} />
       </div>
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.58),#000_58%)]" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,.68)_68%)]" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto max-w-[1700px]">
         {loading ? (

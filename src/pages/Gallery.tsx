@@ -16,7 +16,7 @@ export function Gallery() {
   )
 
   return (
-    <main className="min-h-screen bg-black px-6 pb-24 pt-36 lg:px-10">
+    <main className="cloudscape-page-bg min-h-screen px-6 pb-24 pt-36 lg:px-10">
       <div className="mx-auto max-w-[1700px]">
         <FadeUp>
           <p className="text-sm tracking-[0.35em] text-amber-100/80">公开摄影作品</p>

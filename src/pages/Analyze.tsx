@@ -1,8 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ImagePlus, Loader2, Upload } from 'lucide-react'
-import { type ChangeEvent, useMemo, useState } from 'react'
+import { type ChangeEvent, type CSSProperties, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Aurora } from '../components/Aurora'
 import { BorderGlow } from '../components/BorderGlow'
 import type { AnalysisRecord } from '../types/analysis'
 
@@ -68,12 +67,12 @@ export function Analyze() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black px-6 pb-24 pt-36 lg:px-10">
-      <div className="absolute inset-0 opacity-70" aria-hidden="true">
-        <Aurora amplitude={1.15} blend={0.5} colorStops={['#5227FF', '#7cff67', '#38bdf8']} speed={0.45} />
-      </div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#19191999,#050505_62%)]" aria-hidden="true" />
-
+    <main
+      className="analysis-page-bg cloudscape-page-bg relative min-h-screen overflow-hidden px-6 pb-24 pt-36 lg:px-10"
+      style={{
+        '--analysis-photo': preview ? `url("${preview}")` : 'url("/media/features-cloudscape.png")',
+      } as CSSProperties}
+    >
       <div className="relative z-10 mx-auto max-w-[1700px]">
         <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}>
           <p className="text-sm tracking-[0.35em] text-amber-100/80">上传分析</p>
@@ -81,8 +80,18 @@ export function Analyze() {
         </motion.div>
 
         <div className="mt-16 grid gap-8 lg:grid-cols-[1fr_0.7fr]">
-          <BorderGlow animated borderRadius={8} className="min-h-[560px]" glowColor="264 90 78" backgroundColor="#07070a" glowIntensity={0.72}>
-            <label className="group flex min-h-[560px] cursor-pointer flex-col items-center justify-center bg-black/45 p-8 text-center backdrop-blur-xl">
+          <BorderGlow
+            borderRadius={8}
+            className={`analyze-frame min-h-[560px] ${preview ? 'analyze-frame-uploaded' : ''}`}
+            colors={['#d8c99a', '#f4f1e8', '#b7b1a0']}
+            edgeSensitivity={30}
+            glowColor="42 70 78"
+            backgroundColor="#07070a"
+            glowIntensity={0.72}
+            glowRadius={12}
+            fillOpacity={0.06}
+          >
+            <label className="group flex min-h-[560px] cursor-pointer flex-col items-center justify-center bg-transparent p-8 text-center">
               {preview ? (
                 <img className="max-h-[520px] w-full object-contain" src={preview} alt="上传图片预览" />
               ) : (
@@ -97,7 +106,17 @@ export function Analyze() {
             </label>
           </BorderGlow>
 
-          <BorderGlow animated borderRadius={8} glowColor="40 90 78" backgroundColor="#09090c" glowIntensity={0.82}>
+          <BorderGlow
+            borderRadius={8}
+            className={`analyze-frame ${preview ? 'analyze-frame-uploaded' : ''}`}
+            colors={['#d8c99a', '#f4f1e8', '#b7b1a0']}
+            edgeSensitivity={30}
+            glowColor="42 70 78"
+            backgroundColor="#09090c"
+            glowIntensity={0.72}
+            glowRadius={12}
+            fillOpacity={0.06}
+          >
             <aside className="h-full p-8">
               <Upload className="text-violet-200" size={32} />
               <h2 className="mt-8 text-3xl font-medium text-white">分析前预览</h2>
