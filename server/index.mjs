@@ -59,10 +59,22 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 15 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
 })
 
 app.use(express.json({ limit: '4mb' }))
+
+// --- Multer error handling ---
+function handleMulterError(err, _req, res, next) {
+  if (!err) return next()
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: '文件大小超过限制（最大 50MB），请压缩后重新上传' })
+  }
+  if (err.name === 'MulterError' || err.code?.startsWith('LIMIT_')) {
+    return res.status(400).json({ error: err.message || '文件上传失败' })
+  }
+  return res.status(500).json({ error: err.message || 'Internal server error' })
+}
 
 app.get('/api/health', (_req, res) => {
   return res.json({ ok: true })
@@ -124,7 +136,6 @@ async function callArkVision({ base64DataUrl }) {
           ],
         },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.5,
       max_tokens: 1200,
     }),
@@ -144,34 +155,82 @@ async function callArkVision({ base64DataUrl }) {
   return JSON.parse(content)
 }
 
-app.post('/api/analyze', upload.single('image'), async (req, res) => {
+// Build a compressed image for the Ark API, keeping base64 under ~8 MB (API limit is 10 MB).
+async function buildArkImage(fileBuffer) {
+  const MB = 1024 * 1024
+  // Try progressively smaller sizes to stay under the Ark 10 MB limit
+  const sizes = [
+    { width: 1920, height: 1920, quality: 78 },
+    { width: 1536, height: 1536, quality: 72 },
+    { width: 1280, height: 1280, quality: 68 },
+    { width: 1024, height: 1024, quality: 65 },
+  ]
+
+  for (const size of sizes) {
+    const apiBuffer = await sharp(fileBuffer)
+      .rotate()
+      .resize({ width: size.width, height: size.height, fit: 'inside', withoutEnlargement: true })
+      .flatten({ background: '#ffffff' })
+      .jpeg({ quality: size.quality, chromaSubsampling: '4:2:0' })
+      .toBuffer()
+
+    const base64Length = apiBuffer.toString('base64').length
+    if (base64Length < 8 * MB) {
+      return { apiBuffer, base64DataUrl: `data:image/jpeg;base64,${apiBuffer.toString('base64')}` }
+    }
+    console.log(JSON.stringify({
+      event: 'ark_image_too_large',
+      base64Length,
+      width: size.width,
+      quality: size.quality,
+    }))
+  }
+
+  // Last resort: use the smallest size
+  const apiBuffer = await sharp(fileBuffer)
+    .rotate()
+    .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
+    .flatten({ background: '#ffffff' })
+    .jpeg({ quality: 60, chromaSubsampling: '4:2:0' })
+    .toBuffer()
+
+  return { apiBuffer, base64DataUrl: `data:image/jpeg;base64,${apiBuffer.toString('base64')}` }
+}
+
+app.post('/api/analyze', upload.single('image'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No image uploaded' })
+      return res.status(400).json({ error: '未检测到上传的图片，请选择图片后重试' })
     }
+
+    console.log(JSON.stringify({
+      event: 'upload_received',
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    }))
 
     const filePath = req.file.path
     const fileBuffer = await fs.readFile(filePath)
     const mimeType = req.file.mimetype || 'image/jpeg'
     const storedFilename = path.basename(filePath)
     const imageUrl = `/uploads/${storedFilename}`
-    
+
     const meta = await sharp(fileBuffer).metadata()
     const requestStartedAt = Date.now()
 
-    // Keep the uploaded original, but send Ark a smaller copy to reduce transfer and vision-token latency.
-    const apiBuffer = await sharp(fileBuffer)
-      .rotate()
-      .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
-      .flatten({ background: '#ffffff' })
-      .jpeg({ quality: 82, chromaSubsampling: '4:2:0' })
-      .toBuffer()
-    const base64DataUrl = `data:image/jpeg;base64,${apiBuffer.toString('base64')}`
+    // Build a compressed image for Ark API that fits under the 10 MB limit
+    const { apiBuffer, base64DataUrl } = await buildArkImage(fileBuffer)
+
     let analysis
     try {
       analysis = await callArkVision({ base64DataUrl })
       analysis.source = 'ark'
     } catch (error) {
+      console.log(JSON.stringify({
+        event: 'ark_call_failed',
+        error: error instanceof Error ? error.message : 'Unknown',
+      }))
       analysis = buildMockAnalysis(imageUrl)
       analysis.error = error instanceof Error ? error.message : 'Ark request failed'
     }
@@ -219,6 +278,11 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
     })
     return res.json(record)
   } catch (error) {
+    console.log(JSON.stringify({
+      event: 'analysis_error',
+      error: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+    }))
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Internal server error',
     })
@@ -315,6 +379,18 @@ app.get(/.*/, async (req, res, next) => {
   } catch (error) {
     return next(error)
   }
+})
+
+// Global error handler (must be last)
+app.use((err, _req, res, _next) => {
+  console.error(JSON.stringify({
+    event: 'unhandled_error',
+    error: err instanceof Error ? err.message : String(err),
+  }))
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: '文件大小超过限制（最大 50MB），请压缩后重新上传' })
+  }
+  return res.status(500).json({ error: err instanceof Error ? err.message : 'Internal server error' })
 })
 
 await new Promise((resolve, reject) => {

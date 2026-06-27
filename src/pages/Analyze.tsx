@@ -18,9 +18,17 @@ export function Analyze() {
 
   const currentText = useMemo(() => loadingSteps[Math.min(step, loadingSteps.length - 1)], [step])
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0]
     if (!nextFile) return
+    if (nextFile.size > MAX_FILE_SIZE) {
+      setError(`文件过大（${(nextFile.size / 1024 / 1024).toFixed(1)} MB），最大支持 50 MB，请压缩后重新上传`)
+      setFile(null)
+      setPreview('')
+      return
+    }
     setFile(nextFile)
     setPreview(URL.createObjectURL(nextFile))
     setError('')
@@ -33,7 +41,7 @@ export function Analyze() {
     setStep(0)
     const loadingTimers = loadingStepDelays.map((delay, index) => window.setTimeout(() => setStep(index), delay))
     const controller = new AbortController()
-    const requestTimeout = window.setTimeout(() => controller.abort(), 70000)
+    const requestTimeout = window.setTimeout(() => controller.abort(), 120000)
 
     try {
       const formData = new FormData()
@@ -47,7 +55,8 @@ export function Analyze() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || '上传失败，请稍后再试')
+        const errorMsg = data.error || `上传失败 (HTTP ${response.status})，请稍后再试`
+        throw new Error(errorMsg)
       }
 
       const analysis = (await response.json()) as AnalysisRecord
