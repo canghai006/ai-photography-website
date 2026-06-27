@@ -11,9 +11,13 @@
 }
 
 .auth-page-bg {
-  background:
-    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.06), transparent 32%),
-    linear-gradient(180deg, #0a0a0b, #020203 72%);
+  background-color: #050706;
+  background-image:
+    linear-gradient(180deg, rgba(3, 6, 5, 0.28), rgba(3, 3, 5, 0.48)),
+    url("/media/features-cloudscape.png");
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
 }
 
 .auth-orbit-frame {
@@ -25,6 +29,11 @@
 .auth-orbit-frame::before,
 .auth-orbit-frame::after {
   display: none;
+}
+
+.auth-orbit-frame .border-glow-inner {
+  background: rgba(8, 9, 11, 0.6);
+  backdrop-filter: blur(10px);
 }
 
 .auth-orbit-frame .edge-light {
@@ -203,6 +212,10 @@
 }
 
 @media (max-width: 767px) and (hover: none) {
+  .auth-page-bg {
+    background-attachment: scroll;
+  }
+
   .analyze-frame:hover {
     transform: none;
     box-shadow: none;
