@@ -15,10 +15,10 @@
 
   @keyframes galleryMarquee {
     from {
-      transform: translateX(0);
+      transform: translate3d(0, 0, 0);
     }
     to {
-      transform: translateX(calc(-50% - 10px));
+      transform: translate3d(calc(-50% - 10px), 0, 0);
     }
   }
 
@@ -119,6 +119,11 @@ img {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(238, 220, 171, 0.68);
+}
+
+.home-gallery-preview .animate-galleryMarquee {
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .cloudscape-page-bg {

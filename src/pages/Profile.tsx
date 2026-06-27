@@ -10,6 +10,7 @@ type UserPhoto = {
   id: string
   title: string
   imageUrl: string
+  thumbnailUrl?: string
   createdAt: string
 }
 
@@ -73,7 +74,7 @@ export function Profile() {
             <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {analyses.map((analysis) => (
                 <Link className="group overflow-hidden rounded-xl border border-white/10 bg-black/45" key={analysis.id} to={`/result?id=${analysis.id}`}>
-                  <img className="h-64 w-full object-cover transition duration-500 group-hover:scale-105" src={analysis.imageUrl} alt={analysis.filename} />
+                  <img className="h-64 w-full object-cover transition duration-500 group-hover:scale-105" decoding="async" loading="lazy" src={analysis.imageUrl} alt={analysis.filename} />
                   <div className="relative bg-black/80 p-5"><div className="flex items-center justify-between"><h3 className="truncate text-lg text-white">{analysis.photo?.title || analysis.filename}</h3><span className="text-amber-100">{analysis.overallScore}</span></div><p className="mt-2 text-xs text-zinc-500">{new Date(analysis.createdAt).toLocaleString('zh-CN')}</p></div>
                 </Link>
               ))}

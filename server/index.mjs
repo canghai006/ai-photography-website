@@ -42,6 +42,7 @@ const storageDir = railwayVolumeMountPath
     ? path.resolve(process.env.STORAGE_DIR)
   : path.join(rootDir, 'storage')
 const uploadDir = path.join(storageDir, 'uploads')
+const thumbnailDir = path.join(storageDir, 'thumbnails')
 const analysesPath = path.join(storageDir, 'analyses.json')
 const dbPath = path.join(storageDir, 'app.db')
 const distDir = path.join(rootDir, 'dist')
@@ -51,10 +52,12 @@ const sessionCookieName = 'yingxi_session'
 const sessionMaxAgeMs = 30 * 24 * 60 * 60 * 1000
 const guestAnalysisTtlMs = 60 * 60 * 1000
 const guestAnalyses = new Map()
+const thumbnailJobs = new Map()
 const galleryCategories = new Set(['风光', '人像', '其他'])
 
 await fs.mkdir(storageDir, { recursive: true })
 await fs.mkdir(uploadDir, { recursive: true })
+await fs.mkdir(thumbnailDir, { recursive: true })
 
 console.log(JSON.stringify({
   event: 'storage_configured',
@@ -153,6 +156,14 @@ function setSessionCookie(res, token) {
 function clearSessionCookie(res) {
   const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RAILWAY_ENVIRONMENT)
   res.setHeader('Set-Cookie', `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`)
+}
+
+async function deleteStoredImage(storedFilename) {
+  const safeFilename = path.basename(storedFilename)
+  await Promise.all([
+    fs.unlink(path.join(uploadDir, safeFilename)).catch(() => undefined),
+    fs.unlink(path.join(thumbnailDir, `${safeFilename}.webp`)).catch(() => undefined),
+  ])
 }
 
 function optionalAuth(req, _res, next) {
@@ -265,7 +276,7 @@ app.get('/api/admin/photos', requireAdmin, (_req, res) => {
 app.delete('/api/admin/photos/:photoId', requireAdmin, async (req, res) => {
   const photo = database.deleteAdminPhoto(req.params.photoId)
   if (!photo) return res.status(404).json({ error: '图片不存在' })
-  await fs.unlink(path.join(uploadDir, path.basename(photo.storedFilename))).catch(() => undefined)
+  await deleteStoredImage(photo.storedFilename)
   return res.status(204).end()
 })
 
@@ -275,7 +286,7 @@ app.delete('/api/admin/users/:userId', requireAdmin, async (req, res) => {
   if (target.id === req.user.id || target.role === 'admin') return res.status(400).json({ error: '不能删除管理员账号' })
   const files = database.getUserStoredFilenames(target.id)
   if (!database.deleteAdminUser(target.id)) return res.status(404).json({ error: '用户不存在' })
-  await Promise.all(files.map(({ storedFilename }) => fs.unlink(path.join(uploadDir, path.basename(storedFilename))).catch(() => undefined)))
+  await Promise.all(files.map(({ storedFilename }) => deleteStoredImage(storedFilename)))
   return res.status(204).end()
 })
 
@@ -569,7 +580,8 @@ app.get('/api/me/photos', requireAuth, (req, res) => {
 })
 
 app.get('/api/gallery', optionalAuth, (req, res) => {
-  return res.json(database.listGallery(req.user?.id))
+  const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 100)
+  return res.json(database.listGallery(req.user?.id, limit))
 })
 
 app.post('/api/gallery', requireAuth, upload.array('images', 20), handleMulterError, async (req, res) => {
@@ -669,6 +681,39 @@ app.get('/api/collections', requireAuth, (req, res) => {
 })
 
 app.use('/uploads', express.static(uploadDir))
+
+app.get('/thumbnails/:filename', async (req, res) => {
+  const filename = path.basename(req.params.filename)
+  if (!filename || filename !== req.params.filename) return res.status(400).end()
+  const sourcePath = path.join(uploadDir, filename)
+  const thumbnailPath = path.join(thumbnailDir, `${filename}.webp`)
+
+  try {
+    await fs.access(thumbnailPath)
+  } catch {
+    try {
+      let job = thumbnailJobs.get(filename)
+      if (!job) {
+        job = sharp(sourcePath)
+          .rotate()
+          .resize({ width: 720, height: 960, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 78, effort: 4 })
+          .toFile(thumbnailPath)
+        thumbnailJobs.set(filename, job)
+        void job.then(
+          () => thumbnailJobs.delete(filename),
+          () => thumbnailJobs.delete(filename),
+        )
+      }
+      await job
+    } catch {
+      return res.status(404).end()
+    }
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  return res.sendFile(thumbnailPath)
+})
 
 app.use(express.static(distDir))
 app.get(/.*/, async (req, res, next) => {

@@ -27,6 +27,7 @@ type AdminPhoto = {
   title: string
   category: string
   imageUrl: string
+  thumbnailUrl?: string
   isPublic: boolean
   createdAt: string
   ownerName: string
@@ -140,7 +141,7 @@ export function Admin() {
           </div>
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {photos.map((photo) => <article className="overflow-hidden rounded-xl border border-white/10 bg-black/65" key={photo.id}><img className="h-64 w-full object-cover" src={photo.imageUrl} alt={photo.title} /><div className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="text-lg text-white">{photo.title}</h3><p className="mt-1 text-xs text-zinc-500">{photo.ownerName} · {photo.ownerEmail}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${photo.isPublic ? 'bg-emerald-300/10 text-emerald-200' : 'bg-white/5 text-zinc-400'}`}>{photo.isPublic ? '公开' : '私有'}</span></div><div className="mt-4 flex items-center justify-between text-xs text-zinc-500"><span>{photo.category} · 分析 {photo.analysisCount} · 点赞 {photo.likeCount}</span><button disabled={deletingId === photo.id} className="inline-flex items-center gap-1 text-rose-300 disabled:opacity-40" onClick={() => void removePhoto(photo)}><Trash2 size={15} />删除</button></div></div></article>)}
+            {photos.map((photo) => <article className="overflow-hidden rounded-xl border border-white/10 bg-black/65" key={photo.id}><img className="h-64 w-full object-cover" decoding="async" loading="lazy" src={photo.thumbnailUrl || photo.imageUrl} alt={photo.title} /><div className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="text-lg text-white">{photo.title}</h3><p className="mt-1 text-xs text-zinc-500">{photo.ownerName} · {photo.ownerEmail}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${photo.isPublic ? 'bg-emerald-300/10 text-emerald-200' : 'bg-white/5 text-zinc-400'}`}>{photo.isPublic ? '公开' : '私有'}</span></div><div className="mt-4 flex items-center justify-between text-xs text-zinc-500"><span>{photo.category} · 分析 {photo.analysisCount} · 点赞 {photo.likeCount}</span><button disabled={deletingId === photo.id} className="inline-flex items-center gap-1 text-rose-300 disabled:opacity-40" onClick={() => void removePhoto(photo)}><Trash2 size={15} />删除</button></div></div></article>)}
             {photos.length === 0 ? <p className="text-zinc-500">暂无上传图片</p> : null}
           </div>
         )}

@@ -7,6 +7,7 @@ export type GalleryPhoto = {
   description: string
   category: string
   imageUrl: string
+  thumbnailUrl?: string
   likeCount: number
   liked: boolean
   score: number | null
@@ -29,7 +30,7 @@ export function PhotoCard({ photo, canLike, onLike, showLike = true, onOpen, onC
       if ((event.target as HTMLElement).closest('button, a')) return
       onOpen?.(photo)
     }}>
-      <img className="h-full w-full object-cover transition duration-700 group-hover:scale-105" draggable={false} src={photo.imageUrl} alt={photo.title} />
+      <img className="h-full w-full object-cover transition duration-700 group-hover:scale-105" decoding="async" draggable={false} loading="lazy" src={photo.thumbnailUrl || photo.imageUrl} alt={photo.title} />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80 transition group-hover:opacity-95" />
       {showLike || onComment ? <div className="absolute right-4 top-4 flex items-center gap-2">
         {onComment ? <button title="查看评论" className="inline-flex items-center rounded-full border border-white/20 bg-black/35 p-2 text-white backdrop-blur-md transition hover:border-amber-200/60 hover:text-amber-100" onClick={() => onComment(photo)}><MessageCircle size={17} /></button> : null}

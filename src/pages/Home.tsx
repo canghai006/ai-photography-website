@@ -42,7 +42,7 @@ export function Home() {
 
   useEffect(() => {
     videoRef.current?.play().catch(() => undefined)
-    fetch('/api/gallery')
+    fetch('/api/gallery?limit=12')
       .then((response) => response.ok ? response.json() : [])
       .then((data) => setUploadedPhotos(Array.isArray(data) ? data : []))
       .catch(() => setUploadedPhotos([]))

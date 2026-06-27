@@ -400,7 +400,11 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
         FROM photos p
         JOIN users u ON u.id = p.user_id
         ORDER BY p.created_at DESC
-      `).all().map((row) => ({ ...row, isPublic: Boolean(row.isPublic) }))
+      `).all().map((row) => ({
+        ...row,
+        isPublic: Boolean(row.isPublic),
+        thumbnailUrl: `/thumbnails/${encodeURIComponent(row.storedFilename)}`,
+      }))
     },
 
     getUserStoredFilenames(userId) {
@@ -571,6 +575,7 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
         description: row.description,
         filename: row.original_filename,
         imageUrl: row.image_url,
+        thumbnailUrl: `/thumbnails/${encodeURIComponent(row.stored_filename)}`,
         mimeType: row.mime_type,
         size: row.size,
         width: row.width,
@@ -621,6 +626,7 @@ export function createDatabase({ dbPath, legacyAnalysesPath }) {
         description: row.description,
         category: row.category || '其他',
         imageUrl: row.image_url,
+        thumbnailUrl: `/thumbnails/${encodeURIComponent(row.stored_filename)}`,
         createdAt: row.created_at,
         likeCount: Number(row.like_count || 0),
         liked: Boolean(row.liked),
